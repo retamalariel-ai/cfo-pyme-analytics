@@ -1,22 +1,32 @@
 import { NextResponse } from 'next/server';
 
-const UPSTREAM = 'https://dolarapi.com/v1/dolares/mep';
-
-// Cache on the CDN/server for 5 minutes so we don't hammer the upstream API
 export const revalidate = 300;
 
-export async function GET() {
+const HEADERS = {
+  'Accept': 'application/json',
+  'User-Agent': 'Mozilla/5.0 (compatible; CFO-Analytics/1.0)',
+};
+
+async function tryFetch(url: string): Promise<{ compra: number; venta: number } | null> {
   try {
-    const res = await fetch(UPSTREAM, {
-      next: { revalidate: 300 },
-      headers: { 'Accept': 'application/json' },
-    });
-    if (!res.ok) {
-      return NextResponse.json({ error: 'upstream_error' }, { status: 502 });
-    }
-    const data = await res.json();
-    return NextResponse.json(data);
+    const res = await fetch(url, { next: { revalidate: 300 }, headers: HEADERS });
+    if (!res.ok) return null;
+    const d = await res.json();
+    if (typeof d.compra === 'number' && typeof d.venta === 'number') return d;
+    return null;
   } catch {
-    return NextResponse.json({ error: 'fetch_failed' }, { status: 502 });
+    return null;
   }
+}
+
+export async function GET() {
+  // Try primary source
+  const primary = await tryFetch('https://dolarapi.com/v1/dolares/mep');
+  if (primary) return NextResponse.json(primary);
+
+  // Fallback: argentinadatos.com
+  const fallback = await tryFetch('https://api.argentinadatos.com/v1/cotizaciones/dolares/mep');
+  if (fallback) return NextResponse.json(fallback);
+
+  return NextResponse.json({ error: 'unavailable' }, { status: 502 });
 }
