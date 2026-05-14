@@ -5,7 +5,7 @@ export const calculateStrategicKPIs = (
   projectedSales: number,
   fixedCosts: number,
   contributionMarginRatio: number, // 0–1
-  targetProfit: number
+  targetMarginPct: number          // 0–1, target profit as % of sales
 ): StrategicKPIs => {
   const safetyMargin =
     projectedSales > 0
@@ -17,9 +17,11 @@ export const calculateStrategicKPIs = (
       ? Math.ceil((breakEvenSales / projectedSales) * 30)
       : null;
 
+  // Ventas Req. = Costos Fijos / (CMR - % Utilidad Obj.)
+  // Returns null when target margin >= contribution margin ratio (infeasible)
   const salesForTargetProfit =
-    contributionMarginRatio > 0
-      ? (fixedCosts + targetProfit) / contributionMarginRatio
+    contributionMarginRatio > targetMarginPct
+      ? fixedCosts / (contributionMarginRatio - targetMarginPct)
       : null;
 
   const ebitda =

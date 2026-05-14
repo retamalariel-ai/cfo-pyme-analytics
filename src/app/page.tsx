@@ -52,14 +52,18 @@ const INITIAL_COST_ITEMS: CostItem[] = [
 ];
 
 const TIP = {
-  breakEvenSales: 'Monto total de ventas necesario para cubrir todos los costos fijos y variables sin generar pérdida ni ganancia.',
-  breakEvenUnits: 'Cantidad de unidades equivalentes (ponderadas por mix) que deben venderse para alcanzar el punto de equilibrio.',
-  margin:         'Porcentaje de cada peso de venta que queda disponible para cubrir costos fijos después de descontar los costos variables.',
-  safetyMargin:   'Cuánto pueden caer las ventas respecto a la proyección antes de entrar en pérdida. A mayor %, más estable el negocio.',
-  breakEvenDay:   'Día del mes en que, a ritmo constante de ventas, la empresa cubre todos sus costos y comienza a generar utilidad.',
-  targetSales:    'Facturación necesaria para lograr la utilidad deseada después de cubrir todos los costos (fijos + variables).',
-  ebitda:         'Resultado operativo estimado antes de intereses, impuestos y amortizaciones, sobre las ventas proyectadas ingresadas.',
-  opLeverage:     'Cuántas veces se amplifica el cambio en resultado operativo ante una variación del 1% en ventas. Cuanto mayor, más riesgo y más potencial ante crecimiento.',
+  breakEvenSales:  'Monto total de ventas necesario para cubrir todos los costos fijos y variables sin generar pérdida ni ganancia.',
+  breakEvenUnits:  'Cantidad de unidades equivalentes (ponderadas por mix) que deben venderse para alcanzar el punto de equilibrio.',
+  margin:          'Porcentaje de cada peso de venta que queda disponible para cubrir costos fijos después de descontar los costos variables.',
+  safetyMargin:    'Cuánto pueden caer las ventas respecto a la proyección antes de entrar en pérdida. A mayor %, más estable el negocio.',
+  breakEvenDay:    'Día del mes en que, a ritmo constante de ventas, la empresa cubre todos sus costos y comienza a generar utilidad.',
+  targetSales:     'Facturación necesaria para lograr la rentabilidad objetivo (% sobre ventas) después de cubrir todos los costos fijos y variables. Fórmula: CF / (CMR − % Obj.)',
+  ebitda:          'Resultado operativo estimado antes de intereses, impuestos y amortizaciones, sobre las ventas proyectadas ingresadas.',
+  opLeverage:      'Cuántas veces se amplifica el cambio en resultado operativo ante una variación del 1% en ventas. Cuanto mayor, más riesgo y más potencial ante crecimiento.',
+  targetMarginPct: 'Porcentaje de ganancia neta que deseás alcanzar sobre las ventas. La herramienta calcula cuánto facturar para lograrlo: CF / (CMR − % Obj.).',
+  inflationPct:    'Inflación proyectada aplicada sobre los costos variables. Muestra cómo se erosiona el margen de contribución ante subas de insumos.',
+  cvar:            'Costo Variable unitario: todo costo que varía directamente con cada unidad producida o vendida (materiales, comisiones, etc.).',
+  mixPct:          'Porcentaje que representa este producto en el total de ventas. La suma de todos los productos debe ser 100%.',
 };
 
 export default function Home() {
@@ -86,13 +90,25 @@ export default function Home() {
   // UI state
   const [activeTab, setActiveTab] = useState<TabKey>('config');
 
+  // MEP exchange rate
+  type MepRate = { compra: number; venta: number };
+  const [mepData,  setMepData]  = useState<MepRate | null>(null);
+  const [manualTc, setManualTc] = useState(0);
+  useEffect(() => {
+    fetch('/api/mep')
+      .then(r => r.json())
+      .then((d: MepRate) => { if (d.compra && d.venta) setMepData(d); })
+      .catch(() => {});
+  }, []);
+
   // Data state
-  const [products,       setProducts]       = useState<Product[]>(getInitialProducts);
-  const [costItems,      setCostItems]      = useState<CostItem[]>(INITIAL_COST_ITEMS);
-  const [variableTax,    setVariableTax]    = useState(10);
-  const [observations,   setObservations]   = useState('');
-  const [projectedSales, setProjectedSales] = useState(30000);
-  const [targetProfit,   setTargetProfit]   = useState(5000);
+  const [products,        setProducts]        = useState<Product[]>(getInitialProducts);
+  const [costItems,       setCostItems]        = useState<CostItem[]>(INITIAL_COST_ITEMS);
+  const [variableTax,     setVariableTax]      = useState(10);
+  const [observations,    setObservations]     = useState('');
+  const [projectedSales,  setProjectedSales]   = useState(30000);
+  const [targetMarginPct, setTargetMarginPct]  = useState(15);  // % sobre ventas
+  const [inflationPct,    setInflationPct]     = useState(0);   // % inflación sobre costos var.
 
   const fixedCosts = costItems.reduce((sum, i) => sum + i.amount, 0);
 
@@ -190,8 +206,9 @@ export default function Home() {
       doc.setFont('helvetica', 'bold'); doc.setFontSize(12); st(Co.text);
       doc.text('CFO Tech Partners — Reporte de Equilibrio Estratégico', ML + 8, 10);
       doc.setFont('helvetica', 'normal'); doc.setFontSize(7); st(Co.muted);
+      const tcLabel = effectiveTc ? `  ·  TC MEP: $${effectiveTc.toLocaleString('es-AR', { maximumFractionDigits: 0 })}` : '';
       doc.text(
-        `${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}  ·  ${health.label}  ·  Costos Fijos: $${fixedCosts.toLocaleString('es-AR')}  ·  IIBB: ${variableTax}%`,
+        `${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}  ·  ${health.label}  ·  CF: $${fixedCosts.toLocaleString('es-AR')}  ·  IIBB: ${variableTax}%  ·  Rent. Obj.: ${targetMarginPct}%${tcLabel}`,
         ML + 8, 17
       );
 
@@ -205,7 +222,7 @@ export default function Home() {
         { label: 'EBITDA',       value: fmtV(kpi.ebitda),       color: (kpi.ebitda ?? 0) >= 0 ? Co.emerald : Co.red   },
         { label: 'Margen Seg.',  value: `${smV.toFixed(1)}%`,   color: smV < 10 ? Co.red : smV < 25 ? Co.amber : Co.emerald },
         { label: 'Día P.E.',     value: kpi.breakEvenDay != null ? `Día ${kpi.breakEvenDay}/30` : '—', color: Co.text },
-        { label: 'Vtas. Obj.',   value: fmtV(kpi.salesForTargetProfit), color: Co.amber                               },
+        { label: `Vtas. Obj. (${targetMarginPct}%)`, value: fmtV(kpi.salesForTargetProfit), color: kpi.salesForTargetProfit != null ? Co.amber : Co.light },
         { label: 'Apalan. Op.',  value: olV != null ? `${olV.toFixed(2)}x` : '—',
           color: olV == null ? Co.light : olV > 5 ? Co.red : olV > 3 ? Co.amber : Co.emerald },
       ];
@@ -417,8 +434,26 @@ export default function Home() {
   const hStyle   = HEALTH_STYLES[health.status];
   const kpi = calculateStrategicKPIs(
     breakevenResult.breakEvenSales, projectedSales, fixedCosts,
-    breakevenResult.averageContributionMargin / 100, targetProfit
+    breakevenResult.averageContributionMargin / 100, targetMarginPct / 100
   );
+
+  // MEP + USD helpers
+  const effectiveTc = manualTc > 0 ? manualTc : (mepData?.venta ?? null);
+  const toUSD = (v: number | null): string => {
+    if (v == null || effectiveTc == null || !isFinite(v) || !isFinite(effectiveTc)) return '';
+    return `u$s ${Math.round(v / effectiveTc).toLocaleString('es-AR')}`;
+  };
+
+  // Inflation erosion: run breakeven with inflated variable costs
+  const inflatedResult = inflationPct > 0
+    ? calculateBreakeven(
+        products.map(p => ({ ...p, variableCost: p.variableCost * (1 + inflationPct / 100) })),
+        fixedCosts, variableTax
+      )
+    : null;
+  const inflationErosion = inflatedResult
+    ? inflatedResult.averageContributionMargin - breakevenResult.averageContributionMargin
+    : null; // negative = erosion
 
   const kpiColor = (v: number | null) =>
     v == null || !isFinite(v) || isNaN(v)
@@ -442,6 +477,7 @@ export default function Home() {
     {
       label: 'EBITDA',
       value: fmtM(kpi.ebitda),
+      usd:   toUSD(kpi.ebitda),
       color: kpiColor(kpi.ebitda),
       tip: TIP.ebitda,
       pct: kpi.ebitda != null && projectedSales > 0
@@ -453,6 +489,7 @@ export default function Home() {
     {
       label: 'Margen Seg.',
       value: fmtP(kpi.safetyMargin),
+      usd:   '',
       color: smValue < 10 ? 'text-red-700' : smValue < 25 ? 'text-amber-600' : 'text-emerald-700',
       tip: TIP.safetyMargin,
       pct: Math.max(0, Math.min(100, smValue)),
@@ -462,6 +499,7 @@ export default function Home() {
     {
       label: 'Día P.E.',
       value: kpi.breakEvenDay != null ? `${kpi.breakEvenDay}/30` : '—',
+      usd:   '',
       color: 'text-slate-800',
       tip: TIP.breakEvenDay,
       pct: kpi.breakEvenDay != null ? Math.max(0, 100 - (kpi.breakEvenDay / 30) * 100) : 0,
@@ -471,17 +509,19 @@ export default function Home() {
     {
       label: 'Vtas. Obj.',
       value: fmtM(kpi.salesForTargetProfit),
-      color: 'text-amber-700',
+      usd:   toUSD(kpi.salesForTargetProfit),
+      color: kpi.salesForTargetProfit == null ? 'text-slate-400' : 'text-amber-700',
       tip: TIP.targetSales,
       pct: kpi.salesForTargetProfit != null && kpi.salesForTargetProfit > 0
         ? Math.max(0, Math.min(100, (projectedSales / kpi.salesForTargetProfit) * 100))
         : 0,
       barColor: 'bg-amber-500',
-      warn: false,
+      warn: kpi.salesForTargetProfit == null && targetMarginPct > 0,
     },
     {
       label: 'Apalan. Op.',
       value: operatingLeverage != null ? `${operatingLeverage.toFixed(2)}x` : '—',
+      usd:   '',
       color: olColor,
       tip: TIP.opLeverage,
       pct: operatingLeverage != null
@@ -615,9 +655,10 @@ export default function Home() {
               {activeTab === 'config' && (
                 <div className="space-y-3">
                   {[
-                    { label: 'Impuestos sobre Ventas (IIBB %)', value: variableTax,    set: setVariableTax,    min: 0, max: 100 },
-                    { label: 'Ventas Proyectadas ($)',           value: projectedSales, set: setProjectedSales, min: 0, max: undefined },
-                    { label: 'Utilidad Objetivo ($)',            value: targetProfit,   set: setTargetProfit,   min: 0, max: undefined },
+                    { label: 'Impuestos sobre Ventas (IIBB %)', value: variableTax,     set: setVariableTax,     min: 0,   max: 100  },
+                    { label: 'Ventas Proyectadas ($)',           value: projectedSales,  set: setProjectedSales,  min: 0,   max: undefined },
+                    { label: 'Rentabilidad Objetivo (% ventas)', value: targetMarginPct, set: setTargetMarginPct, min: 0,   max: 99   },
+                    { label: 'Inflación Proyectada (%)',         value: inflationPct,    set: setInflationPct,    min: 0,   max: 1000 },
                   ].map(({ label, value, set, min, max }) => (
                     <div key={label}>
                       <label className="block mb-1 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
@@ -630,6 +671,34 @@ export default function Home() {
                       />
                     </div>
                   ))}
+
+                  {/* Dólar MEP */}
+                  <div className="border border-slate-200 rounded-lg px-3 py-2.5 bg-slate-50">
+                    <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest mb-2">
+                      Tipo de Cambio MEP
+                    </p>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-[10px] text-slate-500">Cotización actual</span>
+                      <span className="font-mono text-xs font-bold text-slate-700">
+                        {mepData ? `$${mepData.venta.toLocaleString('es-AR', { maximumFractionDigits: 2 })}` : '…'}
+                      </span>
+                    </div>
+                    <label className="block mb-1 text-[9px] font-medium text-slate-400 uppercase tracking-wider">
+                      Override manual (0 = automático)
+                    </label>
+                    <input
+                      type="number" value={manualTc} min={0}
+                      onChange={(e) => setManualTc(Number(e.target.value))}
+                      placeholder="0"
+                      className={`w-full px-2.5 py-2 ${INPUT_CLS}`}
+                    />
+                    {effectiveTc && (
+                      <p className="text-[9px] text-slate-400 mt-1.5">
+                        TC activo: <span className="font-mono text-slate-600">${effectiveTc.toLocaleString('es-AR', { maximumFractionDigits: 2 })}</span>
+                        {manualTc > 0 ? ' (manual)' : ' (MEP venta)'}
+                      </p>
+                    )}
+                  </div>
 
                   {/* Resultados Base */}
                   <div className="border-t border-slate-100 pt-4 mt-2 space-y-2">
@@ -671,11 +740,22 @@ export default function Home() {
                     <table className="min-w-full">
                       <thead>
                         <tr className="border-b border-slate-200">
-                          {['Nombre', 'Precio', 'C.Var', 'Mix%', ''].map((h, i) => (
-                            <th key={i} className="pb-2 px-1 text-left text-[9px] font-medium text-slate-500 uppercase tracking-wider">
+                          {['Nombre', 'Precio'].map((h) => (
+                            <th key={h} className="pb-2 px-1 text-left text-[9px] font-medium text-slate-500 uppercase tracking-wider">
                               {h}
                             </th>
                           ))}
+                          <th className="pb-2 px-1 text-left text-[9px] font-medium text-slate-500 uppercase tracking-wider">
+                            <Tooltip content={TIP.cvar}>
+                              <span className="cursor-help underline decoration-dotted">C.Var</span>
+                            </Tooltip>
+                          </th>
+                          <th className="pb-2 px-1 text-left text-[9px] font-medium text-slate-500 uppercase tracking-wider">
+                            <Tooltip content={TIP.mixPct}>
+                              <span className="cursor-help underline decoration-dotted">Mix%</span>
+                            </Tooltip>
+                          </th>
+                          <th className="pb-2 px-1" />
                         </tr>
                       </thead>
                       <tbody>
@@ -726,7 +806,7 @@ export default function Home() {
 
           {/* 1. KPI Strip with semaphore progress bars */}
           <div className="grid grid-cols-5 gap-3">
-            {kpiCards.map(({ label, value, color, tip, pct, barColor, warn }) => (
+            {kpiCards.map(({ label, value, usd, color, tip, pct, barColor, warn }) => (
               <div key={label} className={`${BG_CARD} border ${BORDER} ${GLOW} rounded-2xl px-4 py-4 flex flex-col gap-2`}>
                 <Tooltip content={tip}>
                   <span className="text-[9px] text-slate-400 uppercase tracking-widest flex items-center gap-1 cursor-help">
@@ -737,6 +817,11 @@ export default function Home() {
                 <span className={`font-mono text-2xl font-bold tabular-nums leading-none ${color}`}>
                   {value}
                 </span>
+                {usd && (
+                  <span className="font-mono text-[10px] text-slate-400 tabular-nums -mt-1">
+                    {usd}
+                  </span>
+                )}
                 {/* Semaphore progress bar */}
                 <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
                   <div
@@ -781,6 +866,25 @@ export default function Home() {
             </div>
             <p className={`text-xs font-semibold ${ic.title} mb-1`}>{insight.label}</p>
             <p className={`text-xs ${ic.text} leading-relaxed`}>{insight.msg}</p>
+
+            {/* Inflation erosion alert */}
+            {inflationErosion != null && inflationErosion < -2 && (
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2.5">
+                <FiAlertTriangle size={12} className="text-orange-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[10px] font-semibold text-orange-800">Erosión Inflacionaria</p>
+                  <p className="text-[10px] text-orange-700 leading-relaxed">
+                    Con {inflationPct}% de inflación sobre costos variables, el margen de contribución
+                    cae {Math.abs(inflationErosion).toFixed(1)} pp
+                    (de {safeN(breakevenResult.averageContributionMargin).toFixed(1)}%
+                    a {safeN(inflatedResult!.averageContributionMargin).toFixed(1)}%).
+                    {inflatedResult!.averageContributionMargin < 20
+                      ? ' Revisar precios urgente.'
+                      : ' Monitorear evolución de insumos.'}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 5. Notas Estratégicas */}
