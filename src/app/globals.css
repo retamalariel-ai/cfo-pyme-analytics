@@ -1,0 +1,15 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: var(--font-urbanist), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), 'Courier New', monospace;
+}
+
+body {
+  background-color: #f8fafc; /* slate-50 */
+  color: #0f172a;            /* slate-900 */
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
