@@ -1,11 +1,14 @@
 import { createBrowserClient } from '@supabase/ssr';
 import { Product, CostItem } from './types';
 
-// createBrowserClient stores the session in cookies (not localStorage)
-// so the Next.js middleware can read it server-side via @supabase/ssr createServerClient.
+// NEXT_PUBLIC_ vars are inlined by Next.js at build time from Vercel's
+// Environment Variables config. During static prerendering they may be
+// undefined if not yet set in Vercel — the fallbacks prevent
+// createBrowserClient from throwing "Invalid supabaseUrl" during build.
+// At runtime in the browser the real values are always present.
 export const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL    ?? 'https://placeholder.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-key-build-only'
 );
 
 export const getInitialProducts = (): Product[] => [
