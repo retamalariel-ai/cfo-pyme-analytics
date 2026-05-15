@@ -617,23 +617,23 @@ export default function Home() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
           {/* ── LEFT COLUMN ── */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-4">
             <div className={CARD}>
 
               {/* Tab nav */}
               <div className="flex border-b border-black/[0.06] px-1">
                 {([
-                  { key: 'config',   label: 'Configuración' },
+                  { key: 'config',   label: 'Config'        },
                   { key: 'costs',    label: 'Costos Fijos'  },
                   { key: 'products', label: 'Productos'      },
                 ] as { key: TabKey; label: string }[]).map(({ key, label }) => (
                   <button
                     key={key}
                     onClick={() => setActiveTab(key)}
-                    className={`flex-1 py-3.5 px-2 text-[11px] font-semibold uppercase tracking-widest
+                    className={`flex-1 py-4 px-1 text-[10px] font-semibold uppercase tracking-wide
                                 border-b-2 -mb-px transition-all duration-150
                                 ${activeTab === key
                                   ? 'border-emerald-500 text-emerald-600'
@@ -650,6 +650,13 @@ export default function Home() {
                 {/* CONFIG TAB */}
                 {activeTab === 'config' && (
                   <div className="space-y-4">
+
+                    {/* Mobile-only scenario loader */}
+                    <div className="md:hidden">
+                      <label className={LABEL}>Cargar Escenario</label>
+                      <ScenarioSelector clientId={userId} onLoad={loadScenario} />
+                    </div>
+
                     {[
                       { label: 'Impuestos sobre Ventas (IIBB %)',  value: variableTax,     set: setVariableTax,     min: 0, max: 100      },
                       { label: 'Ventas Proyectadas ($)',            value: projectedSales,  set: setProjectedSales,  min: 0, max: undefined },
@@ -796,30 +803,30 @@ export default function Home() {
           </div>
 
           {/* ── RIGHT COLUMN ── */}
-          <div className="lg:col-span-3 flex flex-col gap-4">
+          <div className="lg:col-span-8 flex flex-col gap-4">
 
-            {/* 1. KPI Strip */}
-            <div className="grid grid-cols-5 gap-3">
+            {/* 1. KPI Strip — 2 cols mobile, 3 tablet, 5 desktop */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {kpiCards.map(({ label, value, usd, color, tip, pct, barColor, warn, icon, iconBg }) => (
                 <div key={label}
-                  className={`${CARD} px-4 py-4 flex flex-col gap-3
+                  className={`${CARD} px-3 sm:px-4 py-4 flex flex-col gap-3
                               hover:shadow-[0_4px_16px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.04)]
                               transition-all duration-200 cursor-default`}>
                   <div className={`h-8 w-8 rounded-xl flex items-center justify-center ${iconBg}`}>
                     {icon}
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <Tooltip content={tip}>
-                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1 flex-wrap">
                         {warn && <FiAlertTriangle size={9} className="text-red-500" />}
                         {label}
                       </span>
                     </Tooltip>
-                    <p className={`font-mono text-xl font-bold tabular-nums leading-tight mt-1 ${color}`}>
+                    <p className={`font-mono text-base sm:text-xl font-bold tabular-nums leading-tight mt-1 truncate ${color}`}>
                       {value}
                     </p>
                     {usd && (
-                      <p className="font-mono text-[10px] text-gray-400 tabular-nums mt-0.5">{usd}</p>
+                      <p className="font-mono text-[10px] text-gray-400 tabular-nums mt-0.5 truncate">{usd}</p>
                     )}
                   </div>
                   <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
@@ -832,80 +839,86 @@ export default function Home() {
               ))}
             </div>
 
-            {/* 2. Chart */}
-            <div className={`${CARD} p-5`}>
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-1">
-                Gráfico de Equilibrio
-              </p>
-              <p className="text-[10px] text-gray-300 mb-4">Ventas vs. Costos por unidades</p>
-              <div ref={chartRef} className="h-[240px] w-full">
-                <BreakevenChart
-                  data={breakevenResult.chartData}
-                  breakEvenPoint={breakevenResult.breakEvenUnits}
+            {/* 2 + 3. Chart & Sensitivity — stacked mobile, side-by-side desktop */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+              <div className={`${CARD} p-5`}>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-1">
+                  Gráfico de Equilibrio
+                </p>
+                <p className="text-[10px] text-gray-300 mb-4">Ventas vs. Costos por unidades</p>
+                <div ref={chartRef} className="h-[220px] w-full">
+                  <BreakevenChart
+                    data={breakevenResult.chartData}
+                    breakEvenPoint={breakevenResult.breakEvenUnits}
+                  />
+                </div>
+              </div>
+
+              <div className={`${CARD} p-5 min-w-0`}>
+                <SensitivityMatrix
+                  products={products}
+                  fixedCosts={fixedCosts}
+                  variableTax={variableTax}
+                  projectedSales={projectedSales}
                 />
               </div>
+
             </div>
 
-            {/* 3. Sensitivity Matrix */}
-            <div className={`${CARD} p-5`}>
-              <SensitivityMatrix
-                products={products}
-                fixedCosts={fixedCosts}
-                variableTax={variableTax}
-                projectedSales={projectedSales}
-              />
-            </div>
+            {/* 4 + 5. Insights & Notes — stacked mobile, side-by-side desktop */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-            {/* 4. AI Insights */}
-            <div className={`rounded-2xl border p-5 ${ic.bg} ${ic.border}`}>
-              <div className="flex items-start gap-3">
-                <div className={`mt-0.5 h-8 w-8 rounded-xl flex items-center justify-center shrink-0
-                                ${ic.dot === 'bg-emerald-500' ? 'bg-emerald-100'
-                                  : ic.dot === 'bg-amber-500' ? 'bg-amber-100'
-                                  : ic.dot === 'bg-red-500'   ? 'bg-red-100'
-                                  : 'bg-gray-100'}`}>
-                  <span className={`h-2 w-2 rounded-full ${ic.dot}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">
-                    Recomendación Estratégica
-                  </p>
-                  <p className={`text-sm font-semibold ${ic.title} mb-1`}>{insight.label}</p>
-                  <p className={`text-xs ${ic.text} leading-relaxed`}>{insight.msg}</p>
+              <div className={`rounded-2xl border p-5 ${ic.bg} ${ic.border}`}>
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 h-8 w-8 rounded-xl flex items-center justify-center shrink-0
+                                  ${ic.dot === 'bg-emerald-500' ? 'bg-emerald-100'
+                                    : ic.dot === 'bg-amber-500' ? 'bg-amber-100'
+                                    : ic.dot === 'bg-red-500'   ? 'bg-red-100'
+                                    : 'bg-gray-100'}`}>
+                    <span className={`h-2 w-2 rounded-full ${ic.dot}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">
+                      Recomendación Estratégica
+                    </p>
+                    <p className={`text-sm font-semibold ${ic.title} mb-1`}>{insight.label}</p>
+                    <p className={`text-xs ${ic.text} leading-relaxed`}>{insight.msg}</p>
 
-                  {inflationErosion != null && inflationErosion < -2 && (
-                    <div className="mt-3 flex items-start gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5">
-                      <FiAlertTriangle size={12} className="text-orange-500 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-[11px] font-semibold text-orange-800">Erosión Inflacionaria</p>
-                        <p className="text-[11px] text-orange-700 leading-relaxed mt-0.5">
-                          Con {inflationPct}% de inflación sobre costos variables, el margen cae {Math.abs(inflationErosion).toFixed(1)} pp
-                          (de {safeN(breakevenResult.averageContributionMargin).toFixed(1)}%
-                          a {safeN(inflatedResult!.averageContributionMargin).toFixed(1)}%).
-                          {inflatedResult!.averageContributionMargin < 20
-                            ? ' Revisar precios urgente.'
-                            : ' Monitorear evolución de insumos.'}
-                        </p>
+                    {inflationErosion != null && inflationErosion < -2 && (
+                      <div className="mt-3 flex items-start gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5">
+                        <FiAlertTriangle size={12} className="text-orange-500 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-[11px] font-semibold text-orange-800">Erosión Inflacionaria</p>
+                          <p className="text-[11px] text-orange-700 leading-relaxed mt-0.5">
+                            Con {inflationPct}% de inflación sobre costos variables, el margen cae {Math.abs(inflationErosion).toFixed(1)} pp
+                            (de {safeN(breakevenResult.averageContributionMargin).toFixed(1)}%
+                            a {safeN(inflatedResult!.averageContributionMargin).toFixed(1)}%).
+                            {inflatedResult!.averageContributionMargin < 20
+                              ? ' Revisar precios urgente.'
+                              : ' Monitorear evolución de insumos.'}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* 5. Notas Estratégicas */}
-            <div className={`${CARD} p-5`}>
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
-                Notas Estratégicas
-              </p>
-              <textarea
-                value={observations}
-                onChange={(e) => setObservations(e.target.value)}
-                rows={3}
-                placeholder="Conclusiones del escenario, recomendaciones para el cliente, riesgos identificados…"
-                className="w-full bg-transparent border-0 outline-none resize-none text-sm text-gray-600
-                           placeholder-gray-300 leading-relaxed focus:ring-0"
-              />
+              <div className={`${CARD} p-5`}>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+                  Notas Estratégicas
+                </p>
+                <textarea
+                  value={observations}
+                  onChange={(e) => setObservations(e.target.value)}
+                  rows={5}
+                  placeholder="Conclusiones del escenario, recomendaciones para el cliente, riesgos identificados…"
+                  className="w-full bg-transparent border-0 outline-none resize-none text-sm text-gray-600
+                             placeholder-gray-300 leading-relaxed focus:ring-0"
+                />
+              </div>
+
             </div>
 
           </div>

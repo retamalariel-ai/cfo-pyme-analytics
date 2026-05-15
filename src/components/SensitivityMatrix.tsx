@@ -77,8 +77,8 @@ export default function SensitivityMatrix({ products, fixedCosts, variableTax, p
           Ingresá productos y ventas proyectadas para ver la matriz.
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-center">
+        <div className="overflow-x-auto -mx-1 px-1">
+          <table className="w-full min-w-[400px] border-collapse text-center">
             <thead>
               <tr>
                 <th className="pb-2 pr-3 text-left">
