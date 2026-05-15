@@ -35,12 +35,13 @@ export default function ScenarioSelector({ clientId, onLoad }: Props) {
         value={selectedId}
         onChange={(e) => handleChange(e.target.value)}
         disabled={loading}
-        className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm
-                   text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500
-                   focus:border-transparent transition disabled:opacity-50"
+        className="flex-1 bg-white border border-black/10 rounded-xl px-3 py-2 text-sm
+                   text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20
+                   focus:border-blue-500 transition-all disabled:opacity-50 disabled:bg-gray-50
+                   hover:border-black/20"
       >
         <option value="">
-          {loading ? 'Cargando escenarios…' : scenarios.length === 0 ? 'Sin escenarios guardados' : 'Cargar escenario…'}
+          {loading ? 'Cargando…' : scenarios.length === 0 ? 'Sin escenarios guardados' : 'Cargar escenario…'}
         </option>
         {scenarios.map(s => (
           <option key={s.id} value={s.id}>
@@ -54,10 +55,10 @@ export default function ScenarioSelector({ clientId, onLoad }: Props) {
         onClick={fetchScenarios}
         disabled={loading}
         aria-label="Actualizar lista"
-        className="p-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800
-                   rounded-lg border border-slate-700 transition disabled:opacity-50"
+        className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100
+                   rounded-xl border border-black/10 transition-all disabled:opacity-50"
       >
-        <FiRefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+        <FiRefreshCw size={14} className={loading ? 'animate-spin' : ''} />
       </button>
     </div>
   );

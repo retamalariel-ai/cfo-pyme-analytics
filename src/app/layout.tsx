@@ -1,9 +1,9 @@
-import { Urbanist, JetBrains_Mono } from 'next/font/google';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 
-const urbanist = Urbanist({
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-urbanist',
+  variable: '--font-inter',
   display: 'swap',
 });
 
@@ -15,7 +15,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${urbanist.variable} ${jetbrainsMono.variable}`}>
+    <html lang="es" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body>{children}</body>
     </html>
   );
