@@ -15,6 +15,7 @@ import FixedCostsEditor from '../components/FixedCostsEditor';
 import Tooltip from '../components/Tooltip';
 import SensitivityMatrix from '../components/SensitivityMatrix';
 import SafeNumberInput from '../components/SafeNumberInput';
+import StrategicImpactCard from '../components/StrategicImpactCard';
 
 const BreakevenChart = dynamic(() => import('@/components/BreakEvenChart'), { ssr: false });
 
@@ -533,10 +534,6 @@ export default function Home() {
         fixedCosts, variableTax
       )
     : null;
-  const inflationErosion = inflatedResult
-    ? inflatedResult.averageContributionMargin - breakevenResult.averageContributionMargin
-    : null;
-
   const kpiColor = (v: number | null) =>
     v == null || !isFinite(v) || isNaN(v) ? 'text-gray-400'
     : v >= 0 ? 'text-emerald-600' : 'text-red-600';
@@ -618,31 +615,6 @@ export default function Home() {
     },
   ];
 
-  // ── AI Insight ────────────────────────────────────────────────────────────
-  const cmr = safeN(breakevenResult.averageContributionMargin);
-  const sm  = kpi.safetyMargin ?? -999;
-  type InsightColor = 'emerald' | 'amber' | 'red' | 'slate';
-  const insight: { color: InsightColor; label: string; msg: string } = (() => {
-    if (products.length === 0)
-      return { color: 'slate',   label: 'Sin Datos',                   msg: 'Ingresá productos para obtener recomendaciones estratégicas automáticas.' };
-    if (sm < 0)
-      return { color: 'red',     label: 'Situación de Quebranto',      msg: 'Las ventas proyectadas no alcanzan el punto de equilibrio. Reducí costos o ajustá los precios para cruzar el umbral.' };
-    if (sm < 10)
-      return { color: 'red',     label: 'Alerta: Margen Crítico',      msg: `Con solo ${fmtP(kpi.safetyMargin)} de colchón, cualquier caída en ventas genera pérdidas. Se requiere acción inmediata.` };
-    if (cmr >= 40 && sm >= 25)
-      return { color: 'emerald', label: 'Estructura Saludable',        msg: `Margen de contribución del ${cmr.toFixed(1)}% y colchón del ${fmtP(kpi.safetyMargin)}. Buena resiliencia ante caídas de demanda.` };
-    if (cmr >= 25)
-      return { color: 'amber',   label: 'Estructura Moderada',         msg: `Margen (${cmr.toFixed(1)}%) suficiente pero colchón (${fmtP(kpi.safetyMargin)}) indica exposición ante shocks. Revisá costos variables.` };
-    return   { color: 'amber',   label: 'Margen de Contribución Bajo', msg: `El margen (${cmr.toFixed(1)}%) es insuficiente. Evaluá un ajuste de precios o reducción de costos variables.` };
-  })();
-
-  const insightColors = {
-    emerald: { bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500', title: 'text-emerald-800', text: 'text-emerald-700' },
-    amber:   { bg: 'bg-amber-50',   border: 'border-amber-200',   dot: 'bg-amber-500',   title: 'text-amber-800',   text: 'text-amber-700'   },
-    red:     { bg: 'bg-red-50',     border: 'border-red-200',     dot: 'bg-red-500',     title: 'text-red-800',     text: 'text-red-700'     },
-    slate:   { bg: 'bg-gray-50',    border: 'border-gray-200',    dot: 'bg-gray-400',    title: 'text-gray-700',    text: 'text-gray-500'    },
-  };
-  const ic = insightColors[insight.color];
 
   // ── Shared sub-elements ───────────────────────────────────────────────────
   const SaveToast = () => saveMessage ? (
@@ -654,40 +626,6 @@ export default function Home() {
     </div>
   ) : null;
 
-  const InsightPanel = ({ compact = false }: { compact?: boolean }) => (
-    <div className={`rounded-2xl border ${compact ? 'p-3.5' : 'p-4'} ${ic.bg} ${ic.border}`}>
-      <div className="flex items-start gap-2.5">
-        <div className={`mt-0.5 h-7 w-7 rounded-xl flex items-center justify-center shrink-0
-                        ${ic.dot === 'bg-emerald-500' ? 'bg-emerald-100'
-                          : ic.dot === 'bg-amber-500' ? 'bg-amber-100'
-                          : ic.dot === 'bg-red-500'   ? 'bg-red-100'
-                          : 'bg-gray-100'}`}>
-          <span className={`h-2 w-2 rounded-full ${ic.dot}`} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">
-            Recomendación Estratégica
-          </p>
-          <p className={`text-xs font-semibold ${ic.title} mb-1`}>{insight.label}</p>
-          <p className={`text-[11px] ${ic.text} leading-relaxed`}>{insight.msg}</p>
-          {inflationErosion != null && inflationErosion < -2 && (
-            <div className="mt-2.5 flex items-start gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2">
-              <FiAlertTriangle size={11} className="text-orange-500 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-[10px] font-semibold text-orange-800">Erosión Inflacionaria</p>
-                <p className="text-[10px] text-orange-700 leading-relaxed mt-0.5">
-                  Con {inflationPct}% de inflación, el margen cae {Math.abs(inflationErosion).toFixed(1)} pp
-                  (de {safeN(breakevenResult.averageContributionMargin).toFixed(1)}%
-                  a {safeN(inflatedResult!.averageContributionMargin).toFixed(1)}%).
-                  {inflatedResult!.averageContributionMargin < 20 ? ' Revisar precios urgente.' : ' Monitorear insumos.'}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 
   // ── RENDER ────────────────────────────────────────────────────────────────
   return (
@@ -854,7 +792,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <InsightPanel />
+              <StrategicImpactCard tc={effectiveTc ?? 1420} />
             </div>
           )}
 
@@ -869,7 +807,7 @@ export default function Home() {
                   projectedSales={projectedSales}
                 />
               </div>
-              <InsightPanel />
+              <StrategicImpactCard tc={effectiveTc ?? 1420} />
             </div>
           )}
 
@@ -1231,9 +1169,9 @@ export default function Home() {
                 <FixedCostsEditor items={costItems} onChange={setCostItems} />
               </div>
 
-              {/* Insight + Notes */}
+              {/* Strategic Impact Card */}
               <div className="shrink-0">
-                <InsightPanel compact />
+                <StrategicImpactCard tc={effectiveTc ?? 1420} />
               </div>
 
               <div className={`${CARD} p-4 shrink-0`}>
