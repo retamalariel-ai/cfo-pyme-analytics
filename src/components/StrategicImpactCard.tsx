@@ -21,10 +21,10 @@ export default function StrategicImpactCard({ tc = 1420 }: Props) {
     pctAntes?: string;
     pctDespues?: string;
   }[] = [
-    { label: 'Punto de Equilibrio', antes: 14318182, despues: 9850000, format: 'ars' },
-    { label: 'EBITDA Proyectado',   antes: -811100,  despues: 1150000,  format: 'ars' },
+    { label: 'Punto de Equilibrio', antes: 14318182, despues: 11083333, format: 'ars' },
+    { label: 'EBITDA Proyectado',   antes: -811100,  despues: -26300,   format: 'ars' },
     { label: 'Rentabilidad (ROS)',  antes: 0,        despues: 0,        format: 'pct',
-      pctAntes: '-5.24%', pctDespues: '+10.45%' },
+      pctAntes: '-5.24%', pctDespues: '-0.24%' },
   ];
 
   return (
@@ -66,7 +66,10 @@ export default function StrategicImpactCard({ tc = 1420 }: Props) {
                 <div className="col-span-4 text-rose-400 text-right font-bold text-sm bg-rose-500/5 py-1 rounded">
                   {pctAntes}
                 </div>
-                <div className="col-span-4 text-emerald-400 text-right font-bold text-sm bg-emerald-500/5 py-1 rounded">
+                <div className={`col-span-4 text-right font-bold text-sm py-1 rounded
+                                ${pctDespues?.startsWith('+')
+                                  ? 'text-emerald-400 bg-emerald-500/5'
+                                  : 'text-amber-400 bg-amber-500/5'}`}>
                   {pctDespues}
                 </div>
               </>
@@ -76,7 +79,7 @@ export default function StrategicImpactCard({ tc = 1420 }: Props) {
                   <span className="block font-bold">{sign(antes)}{fmtARS(antes)}</span>
                   <span className="text-[10px] opacity-70">{sign(antes)}{fmtUSD(antes, tc)}</span>
                 </div>
-                <div className="col-span-4 text-emerald-400 text-right tabular-nums">
+                <div className={`col-span-4 text-right tabular-nums ${despues >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
                   <span className="block font-bold">{sign(despues)}{fmtARS(despues)}</span>
                   <span className="text-[10px] opacity-70">{sign(despues)}{fmtUSD(despues, tc)}</span>
                 </div>
