@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import { FiTrash2, FiPlus, FiUpload } from 'react-icons/fi';
 import type { CostItem } from '../lib/types';
+import NumericInput from './NumericInput';
 
 interface Props {
   items: CostItem[];
@@ -34,15 +35,11 @@ export default function FixedCostsEditor({ items, onChange }: Props) {
   const addItem = () =>
     onChange([...items, { id: nextId(items), name: '', amount: 0 }]);
 
-  const update = (id: number, field: 'name' | 'amount', value: string) => {
-    onChange(
-      items.map(item =>
-        item.id === id
-          ? { ...item, [field]: field === 'amount' ? Number(value) : value }
-          : item
-      )
-    );
-  };
+  const updateName = (id: number, name: string) =>
+    onChange(items.map(item => item.id === id ? { ...item, name } : item));
+
+  const updateAmount = (id: number, amount: number) =>
+    onChange(items.map(item => item.id === id ? { ...item, amount } : item));
 
   const remove = (id: number) => onChange(items.filter(i => i.id !== id));
 
@@ -101,15 +98,14 @@ export default function FixedCostsEditor({ items, onChange }: Props) {
               type="text"
               value={item.name}
               placeholder="Concepto"
-              onChange={(e) => update(item.id, 'name', e.target.value)}
+              onChange={(e) => updateName(item.id, e.target.value)}
               className={`flex-1 px-3 py-2 ${INPUT}`}
             />
-            <input
-              type="number"
+            <NumericInput
               value={item.amount}
               min={0}
-              onChange={(e) => update(item.id, 'amount', e.target.value)}
-              className={`w-24 px-3 py-2 font-mono ${INPUT}`}
+              onChange={(v) => updateAmount(item.id, v)}
+              className={`w-28 px-3 py-2 font-mono text-right tabular-nums ${INPUT}`}
             />
             <button
               onClick={() => remove(item.id)}
@@ -135,7 +131,7 @@ export default function FixedCostsEditor({ items, onChange }: Props) {
         <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
           Total Costos Fijos
         </span>
-        <span className="font-mono font-bold text-gray-900 text-sm">
+        <span className="font-mono font-bold text-gray-900 text-sm tabular-nums">
           ${total.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
         </span>
       </div>

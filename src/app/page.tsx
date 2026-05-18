@@ -14,6 +14,7 @@ import ScenarioSelector from '../components/ScenarioSelector';
 import FixedCostsEditor from '../components/FixedCostsEditor';
 import Tooltip from '../components/Tooltip';
 import SensitivityMatrix from '../components/SensitivityMatrix';
+import NumericInput from '../components/NumericInput';
 
 const BreakevenChart = dynamic(() => import('@/components/BreakEvenChart'), { ssr: false });
 
@@ -34,8 +35,14 @@ const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const safeN = (v: number) => (isFinite(v) && !isNaN(v) ? v : 0);
-const fmtM  = (v: number | null) =>
-  v != null && isFinite(v) && !isNaN(v) ? `$${Math.round(v).toLocaleString('es-AR')}` : '—';
+const fmtM = (v: number | null): string => {
+  if (v == null || !isFinite(v) || isNaN(v)) return '—';
+  const abs = Math.abs(v);
+  const sign = v < 0 ? '-' : '';
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(2)}M`;
+  if (abs >= 10_000)    return `${sign}$${(abs / 1_000).toFixed(1)}k`;
+  return `${sign}$${Math.round(abs).toLocaleString('es-AR')}`;
+};
 const fmtP  = (v: number | null) =>
   v != null && isFinite(v) && !isNaN(v) ? `${v.toFixed(1)}%` : '—';
 
@@ -66,6 +73,90 @@ const TIP = {
   cvar:            'Costo Variable unitario: todo costo que varía directamente con cada unidad producida o vendida (materiales, comisiones, etc.).',
   mixPct:          'Porcentaje que representa este producto en el total de ventas. La suma de todos los productos debe ser 100%.',
 };
+
+// ── ProductsTable — defined at module level so React never remounts it on Home re-renders ──
+interface ProductsTableProps {
+  products: Product[];
+  mixTotal: number;
+  onProductChange: (id: number, field: EditableField, value: number) => void;
+  onDelete: (id: number) => void;
+  onAdd: () => void;
+}
+
+function ProductsTable({ products, mixTotal, onProductChange, onDelete, onAdd }: ProductsTableProps) {
+  return (
+    <div>
+      {products.length > 0 && mixTotal !== 100 && (
+        <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl bg-amber-50 border border-amber-100">
+          <FiAlertTriangle size={11} className="text-amber-500 shrink-0" />
+          <p className="text-[11px] text-amber-700 font-medium">Mix total: {mixTotal}% — debe sumar 100%</p>
+        </div>
+      )}
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[340px]">
+          <thead>
+            <tr className="border-b border-black/[0.06]">
+              <th className="pb-2 px-1 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Nombre</th>
+              <th className="pb-2 px-1 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider w-24">Precio</th>
+              <th className="pb-2 px-1 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider w-24">
+                <Tooltip content={TIP.cvar}>
+                  <span className="cursor-help underline decoration-dotted underline-offset-2">C.Var</span>
+                </Tooltip>
+              </th>
+              <th className="pb-2 px-1 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider w-14">
+                <Tooltip content={TIP.mixPct}>
+                  <span className="cursor-help underline decoration-dotted underline-offset-2">Mix%</span>
+                </Tooltip>
+              </th>
+              <th className="pb-2 px-1 w-8" />
+            </tr>
+          </thead>
+          <tbody>
+            {products.map((p) => (
+              <tr key={p.id} className="border-b border-black/[0.04] hover:bg-gray-50 transition-colors">
+                <td className="py-2 px-1 text-xs text-gray-700 font-medium truncate max-w-[80px]">{p.name}</td>
+                <td className="py-2 px-1">
+                  <NumericInput
+                    value={p.price}
+                    onChange={(v) => onProductChange(p.id, 'price', v)}
+                    className={`w-20 px-2 py-1.5 text-xs text-right tabular-nums ${INPUT_CLS}`}
+                  />
+                </td>
+                <td className="py-2 px-1">
+                  <NumericInput
+                    value={p.variableCost}
+                    onChange={(v) => onProductChange(p.id, 'variableCost', v)}
+                    className={`w-20 px-2 py-1.5 text-xs text-right tabular-nums ${INPUT_CLS}`}
+                  />
+                </td>
+                <td className="py-2 px-1">
+                  <NumericInput
+                    value={p.mixPercentage}
+                    max={100}
+                    onChange={(v) => onProductChange(p.id, 'mixPercentage', v)}
+                    className={`w-12 px-2 py-1.5 text-xs text-right tabular-nums ${INPUT_CLS}`}
+                  />
+                </td>
+                <td className="py-2 px-1">
+                  <button onClick={() => onDelete(p.id)}
+                    className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                    <FiTrash2 size={11} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <button onClick={onAdd}
+        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border
+                   border-dashed border-gray-200 hover:border-emerald-400 hover:bg-emerald-50
+                   px-4 py-2 text-[11px] font-medium text-gray-400 hover:text-emerald-600 transition-all">
+        <FiPlus size={11} /> Añadir Producto
+      </button>
+    </div>
+  );
+}
 
 export default function Home() {
   const router   = useRouter();
@@ -126,8 +217,7 @@ export default function Home() {
   }, [products, fixedCosts, variableTax]);
 
   // ── Product handlers ──────────────────────────────────────────────────────
-  const handleProductChange = (id: number, field: EditableField, raw: string) => {
-    const value = Number(raw);
+  const handleProductChange = (id: number, field: EditableField, value: number) => {
     if (isNaN(value)) return;
     setProducts(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
   };
@@ -428,7 +518,12 @@ export default function Home() {
   const effectiveTc = manualTc > 0 ? manualTc : (mepData?.venta ?? null);
   const toUSD = (v: number | null): string => {
     if (v == null || effectiveTc == null || !isFinite(v) || !isFinite(effectiveTc)) return '';
-    return `u$s ${Math.round(v / effectiveTc).toLocaleString('es-AR')}`;
+    const usd = Math.round(v / effectiveTc);
+    const abs = Math.abs(usd);
+    const sign = usd < 0 ? '-' : '';
+    if (abs >= 1_000_000) return `${sign}u$s ${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 10_000)    return `${sign}u$s ${(abs / 1_000).toFixed(1)}k`;
+    return `${sign}u$s ${usd.toLocaleString('es-AR')}`;
   };
 
   const inflatedResult = inflationPct > 0
@@ -593,72 +688,6 @@ export default function Home() {
     </div>
   );
 
-  const ProductsTable = ({ compact = false }: { compact?: boolean }) => (
-    <div>
-      {products.length > 0 && mixTotal !== 100 && (
-        <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl bg-amber-50 border border-amber-100">
-          <FiAlertTriangle size={11} className="text-amber-500 shrink-0" />
-          <p className="text-[11px] text-amber-700 font-medium">Mix total: {mixTotal}% — debe sumar 100%</p>
-        </div>
-      )}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[320px]">
-          <thead>
-            <tr className="border-b border-black/[0.06]">
-              <th className={`pb-2 px-1 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider ${compact ? 'pb-1.5' : ''}`}>Nombre</th>
-              <th className="pb-2 px-1 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Precio</th>
-              <th className="pb-2 px-1 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                <Tooltip content={TIP.cvar}>
-                  <span className="cursor-help underline decoration-dotted underline-offset-2">C.Var</span>
-                </Tooltip>
-              </th>
-              <th className="pb-2 px-1 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                <Tooltip content={TIP.mixPct}>
-                  <span className="cursor-help underline decoration-dotted underline-offset-2">Mix%</span>
-                </Tooltip>
-              </th>
-              <th className="pb-2 px-1" />
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((p) => (
-              <tr key={p.id} className="border-b border-black/[0.04] hover:bg-gray-50 transition-colors">
-                <td className="py-2 px-1 text-xs text-gray-700 font-medium truncate max-w-[80px]">{p.name}</td>
-                <td className="py-2 px-1">
-                  <input type="number" value={p.price} min={0}
-                    onChange={(e) => handleProductChange(p.id, 'price', e.target.value)}
-                    className={`w-16 px-2 py-1.5 text-xs ${INPUT_CLS}`} />
-                </td>
-                <td className="py-2 px-1">
-                  <input type="number" value={p.variableCost} min={0}
-                    onChange={(e) => handleProductChange(p.id, 'variableCost', e.target.value)}
-                    className={`w-16 px-2 py-1.5 text-xs ${INPUT_CLS}`} />
-                </td>
-                <td className="py-2 px-1">
-                  <input type="number" value={p.mixPercentage} min={0} max={100}
-                    onChange={(e) => handleProductChange(p.id, 'mixPercentage', e.target.value)}
-                    className={`w-12 px-2 py-1.5 text-xs ${INPUT_CLS}`} />
-                </td>
-                <td className="py-2 px-1">
-                  <button onClick={() => deleteProduct(p.id)}
-                    className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
-                    <FiTrash2 size={11} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <button onClick={addProduct}
-        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border
-                   border-dashed border-gray-200 hover:border-emerald-400 hover:bg-emerald-50
-                   px-4 py-2 text-[11px] font-medium text-gray-400 hover:text-emerald-600 transition-all">
-        <FiPlus size={11} /> Añadir Producto
-      </button>
-    </div>
-  );
-
   // ── RENDER ────────────────────────────────────────────────────────────────
   return (
     <>
@@ -721,7 +750,7 @@ export default function Home() {
                   <Tooltip content={tip}>
                     <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">{label}</span>
                   </Tooltip>
-                  <p className={`font-mono text-sm font-bold tabular-nums truncate mt-0.5 ${color}`}>{value}</p>
+                  <p className={`font-mono font-bold tabular-nums truncate mt-0.5 ${color} ${value.length > 8 ? 'text-xs' : 'text-sm'}`}>{value}</p>
                   {usd && <p className="font-mono text-[9px] text-gray-400 truncate">{usd}</p>}
                 </div>
                 <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
@@ -742,19 +771,26 @@ export default function Home() {
               <div className={`${CARD} p-4`}>
                 <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-3">Parámetros</p>
                 <div className="space-y-3">
-                  {[
-                    { label: 'Impuestos sobre Ventas (IIBB %)',  value: variableTax,     set: setVariableTax,     min: 0, max: 100      },
-                    { label: 'Ventas Proyectadas ($)',            value: projectedSales,  set: setProjectedSales,  min: 0, max: undefined },
-                    { label: 'Rentabilidad Objetivo (% ventas)', value: targetMarginPct, set: setTargetMarginPct, min: 0, max: 99       },
-                    { label: 'Inflación Proyectada (%)',         value: inflationPct,    set: setInflationPct,    min: 0, max: 1000      },
-                  ].map(({ label, value, set, min, max }) => (
-                    <div key={label}>
-                      <label className={LABEL}>{label}</label>
-                      <input type="number" value={value} min={min} max={max}
-                        onChange={(e) => set(Number(e.target.value))}
-                        className={`w-full px-3 py-2.5 ${INPUT_CLS}`} />
-                    </div>
-                  ))}
+                  <div>
+                    <label className={LABEL}>Impuestos sobre Ventas (IIBB %)</label>
+                    <NumericInput value={variableTax} onChange={setVariableTax} min={0} max={100}
+                      className={`w-full px-3 py-2.5 ${INPUT_CLS}`} />
+                  </div>
+                  <div>
+                    <label className={LABEL}>Ventas Proyectadas ($)</label>
+                    <NumericInput value={projectedSales} onChange={setProjectedSales} min={0}
+                      className={`w-full px-3 py-2.5 ${INPUT_CLS}`} />
+                  </div>
+                  <div>
+                    <label className={LABEL}>Rentabilidad Objetivo (% ventas)</label>
+                    <NumericInput value={targetMarginPct} onChange={setTargetMarginPct} min={0} max={99}
+                      className={`w-full px-3 py-2.5 ${INPUT_CLS}`} />
+                  </div>
+                  <div>
+                    <label className={LABEL}>Inflación Proyectada (%)</label>
+                    <NumericInput value={inflationPct} onChange={setInflationPct} min={0} max={1000}
+                      className={`w-full px-3 py-2.5 ${INPUT_CLS}`} />
+                  </div>
                 </div>
               </div>
 
@@ -849,7 +885,13 @@ export default function Home() {
               {/* Products */}
               <div className={`${CARD} p-4`}>
                 <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-3">Tabla de Productos</p>
-                <ProductsTable />
+                <ProductsTable
+                  products={products}
+                  mixTotal={mixTotal}
+                  onProductChange={handleProductChange}
+                  onDelete={deleteProduct}
+                  onAdd={addProduct}
+                />
               </div>
 
               {/* Fixed costs */}
@@ -977,7 +1019,7 @@ export default function Home() {
                       {label}
                     </span>
                   </Tooltip>
-                  <p className={`font-mono text-lg font-bold tabular-nums leading-tight mt-0.5 truncate ${color}`}>
+                  <p className={`font-mono font-bold tabular-nums leading-tight mt-0.5 truncate ${color} ${value.length > 8 ? 'text-sm' : value.length > 5 ? 'text-base' : 'text-lg'}`}>
                     {value}
                   </p>
                   {usd && (
@@ -1029,10 +1071,9 @@ export default function Home() {
                           <span>IIBB %</span>
                         </Tooltip>
                       </label>
-                      <input type="number" value={variableTax} min={0} max={100}
-                        onChange={(e) => setVariableTax(Number(e.target.value))}
+                      <NumericInput value={variableTax} onChange={setVariableTax} min={0} max={100}
                         className="w-14 text-right text-xs font-mono font-bold text-gray-800
-                                   bg-transparent border-0 outline-none focus:ring-0 p-0" />
+                                   bg-transparent border-0 outline-none p-0" />
                     </div>
                     <input type="range" min={0} max={50} step={0.5} value={variableTax}
                       onChange={(e) => setVariableTax(Number(e.target.value))}
@@ -1042,8 +1083,7 @@ export default function Home() {
                   {/* Ventas Proyectadas — number only */}
                   <div>
                     <label className={`${SLABEL} block mb-1.5`}>Ventas Proyectadas ($)</label>
-                    <input type="number" value={projectedSales} min={0}
-                      onChange={(e) => setProjectedSales(Number(e.target.value))}
+                    <NumericInput value={projectedSales} onChange={setProjectedSales} min={0}
                       className={`w-full px-3 py-1.5 text-sm ${INPUT_CLS}`} />
                   </div>
 
@@ -1055,10 +1095,9 @@ export default function Home() {
                           <span>ROS Obj. %</span>
                         </Tooltip>
                       </label>
-                      <input type="number" value={targetMarginPct} min={0} max={99}
-                        onChange={(e) => setTargetMarginPct(Number(e.target.value))}
+                      <NumericInput value={targetMarginPct} onChange={setTargetMarginPct} min={0} max={99}
                         className="w-14 text-right text-xs font-mono font-bold text-gray-800
-                                   bg-transparent border-0 outline-none focus:ring-0 p-0" />
+                                   bg-transparent border-0 outline-none p-0" />
                     </div>
                     <input type="range" min={0} max={60} step={0.5} value={targetMarginPct}
                       onChange={(e) => setTargetMarginPct(Number(e.target.value))}
@@ -1073,10 +1112,9 @@ export default function Home() {
                           <span>Inflación %</span>
                         </Tooltip>
                       </label>
-                      <input type="number" value={inflationPct} min={0} max={1000}
-                        onChange={(e) => setInflationPct(Number(e.target.value))}
+                      <NumericInput value={inflationPct} onChange={setInflationPct} min={0} max={1000}
                         className="w-14 text-right text-xs font-mono font-bold text-orange-600
-                                   bg-transparent border-0 outline-none focus:ring-0 p-0" />
+                                   bg-transparent border-0 outline-none p-0" />
                     </div>
                     <input type="range" min={0} max={300} step={1} value={inflationPct}
                       onChange={(e) => setInflationPct(Number(e.target.value))}
@@ -1178,7 +1216,13 @@ export default function Home() {
               {/* Products Table */}
               <div className={`${CARD} p-4 shrink-0`}>
                 <p className={`${SLABEL} mb-3`}>Tabla de Productos</p>
-                <ProductsTable compact />
+                <ProductsTable
+                  products={products}
+                  mixTotal={mixTotal}
+                  onProductChange={handleProductChange}
+                  onDelete={deleteProduct}
+                  onAdd={addProduct}
+                />
               </div>
 
               {/* Fixed Costs */}
