@@ -3,7 +3,7 @@
 import { useRef } from 'react';
 import { FiTrash2, FiPlus, FiUpload } from 'react-icons/fi';
 import type { CostItem } from '../lib/types';
-import NumericInput from './NumericInput';
+import SafeNumberInput from './SafeNumberInput';
 
 interface Props {
   items: CostItem[];
@@ -24,7 +24,7 @@ const nextId = (items: CostItem[]) =>
   items.length > 0 ? Math.max(...items.map(i => i.id)) + 1 : 1;
 
 const INPUT =
-  'bg-white border border-black/10 rounded-xl text-gray-900 text-sm ' +
+  'w-full bg-white border border-black/10 rounded-xl text-gray-900 text-sm ' +
   'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ' +
   'transition-all duration-150 placeholder-gray-400 hover:border-black/20';
 
@@ -71,6 +71,7 @@ export default function FixedCostsEditor({ items, onChange }: Props) {
 
   return (
     <div>
+      {/* Toolbar */}
       <div className="flex items-center justify-between mb-4">
         <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
           Detalle de costos
@@ -86,6 +87,18 @@ export default function FixedCostsEditor({ items, onChange }: Props) {
         <input ref={fileRef} type="file" accept=".csv,.txt" onChange={handleCSV} className="hidden" />
       </div>
 
+      {/* Column headers */}
+      <div className="grid grid-cols-12 items-center gap-2 pb-2 mb-1 border-b border-black/[0.06]">
+        <div className="col-span-6 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+          Concepto
+        </div>
+        <div className="col-span-5 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+          Monto ($)
+        </div>
+        <div className="col-span-1" />
+      </div>
+
+      {/* Rows */}
       <div className="space-y-2 max-h-56 overflow-y-auto pr-0.5">
         {items.length === 0 && (
           <p className="text-[12px] text-gray-400 text-center py-6">
@@ -93,24 +106,28 @@ export default function FixedCostsEditor({ items, onChange }: Props) {
           </p>
         )}
         {items.map(item => (
-          <div key={item.id} className="flex gap-2 items-center">
+          <div key={item.id} className="grid grid-cols-12 items-center gap-2">
+            {/* col-span-6 — concept name */}
             <input
               type="text"
               value={item.name}
               placeholder="Concepto"
               onChange={(e) => updateName(item.id, e.target.value)}
-              className={`flex-1 px-3 py-2 ${INPUT}`}
+              className={`col-span-6 px-3 py-2 ${INPUT}`}
             />
-            <NumericInput
+            {/* col-span-5 — amount (always truncated to column, never pushes delete) */}
+            <SafeNumberInput
               value={item.amount}
               min={0}
               onChange={(v) => updateAmount(item.id, v)}
-              className={`w-28 px-3 py-2 font-mono text-right tabular-nums ${INPUT}`}
+              className={`col-span-5 px-3 py-2 font-mono text-right tabular-nums ${INPUT}`}
             />
+            {/* col-span-1 — delete, isolated so it can never be displaced */}
             <button
               onClick={() => remove(item.id)}
               aria-label="Eliminar"
-              className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+              className="col-span-1 flex items-center justify-center p-1.5 text-gray-300
+                         hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
             >
               <FiTrash2 size={13} />
             </button>
@@ -118,6 +135,7 @@ export default function FixedCostsEditor({ items, onChange }: Props) {
         ))}
       </div>
 
+      {/* Add row */}
       <button
         onClick={addItem}
         className="mt-3 flex items-center justify-center gap-1.5 w-full py-2.5 text-[11px] font-medium
@@ -127,13 +145,17 @@ export default function FixedCostsEditor({ items, onChange }: Props) {
         <FiPlus size={12} /> Agregar concepto
       </button>
 
-      <div className="mt-4 pt-4 border-t border-black/[0.06] flex justify-between items-center">
-        <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-          Total Costos Fijos
-        </span>
-        <span className="font-mono font-bold text-gray-900 text-sm tabular-nums">
-          ${total.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
-        </span>
+      {/* Total row — grid-aligned with columns above */}
+      <div className="mt-4 pt-4 border-t border-black/[0.06]">
+        <div className="grid grid-cols-12 items-center gap-2">
+          <span className="col-span-6 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+            Total Costos Fijos
+          </span>
+          <span className="col-span-5 font-mono font-bold text-gray-900 text-sm tabular-nums text-right">
+            ${total.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+          </span>
+          <div className="col-span-1" />
+        </div>
       </div>
     </div>
   );

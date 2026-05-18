@@ -14,7 +14,7 @@ import ScenarioSelector from '../components/ScenarioSelector';
 import FixedCostsEditor from '../components/FixedCostsEditor';
 import Tooltip from '../components/Tooltip';
 import SensitivityMatrix from '../components/SensitivityMatrix';
-import NumericInput from '../components/NumericInput';
+import SafeNumberInput from '../components/SafeNumberInput';
 
 const BreakevenChart = dynamic(() => import('@/components/BreakEvenChart'), { ssr: false });
 
@@ -92,62 +92,63 @@ function ProductsTable({ products, mixTotal, onProductChange, onDelete, onAdd }:
           <p className="text-[11px] text-amber-700 font-medium">Mix total: {mixTotal}% — debe sumar 100%</p>
         </div>
       )}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[340px]">
-          <thead>
-            <tr className="border-b border-black/[0.06]">
-              <th className="pb-2 px-1 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Nombre</th>
-              <th className="pb-2 px-1 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider w-24">Precio</th>
-              <th className="pb-2 px-1 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider w-24">
-                <Tooltip content={TIP.cvar}>
-                  <span className="cursor-help underline decoration-dotted underline-offset-2">C.Var</span>
-                </Tooltip>
-              </th>
-              <th className="pb-2 px-1 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider w-14">
-                <Tooltip content={TIP.mixPct}>
-                  <span className="cursor-help underline decoration-dotted underline-offset-2">Mix%</span>
-                </Tooltip>
-              </th>
-              <th className="pb-2 px-1 w-8" />
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((p) => (
-              <tr key={p.id} className="border-b border-black/[0.04] hover:bg-gray-50 transition-colors">
-                <td className="py-2 px-1 text-xs text-gray-700 font-medium truncate max-w-[80px]">{p.name}</td>
-                <td className="py-2 px-1">
-                  <NumericInput
-                    value={p.price}
-                    onChange={(v) => onProductChange(p.id, 'price', v)}
-                    className={`w-20 px-2 py-1.5 text-xs text-right tabular-nums ${INPUT_CLS}`}
-                  />
-                </td>
-                <td className="py-2 px-1">
-                  <NumericInput
-                    value={p.variableCost}
-                    onChange={(v) => onProductChange(p.id, 'variableCost', v)}
-                    className={`w-20 px-2 py-1.5 text-xs text-right tabular-nums ${INPUT_CLS}`}
-                  />
-                </td>
-                <td className="py-2 px-1">
-                  <NumericInput
-                    value={p.mixPercentage}
-                    max={100}
-                    onChange={(v) => onProductChange(p.id, 'mixPercentage', v)}
-                    className={`w-12 px-2 py-1.5 text-xs text-right tabular-nums ${INPUT_CLS}`}
-                  />
-                </td>
-                <td className="py-2 px-1">
-                  <button onClick={() => onDelete(p.id)}
-                    className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
-                    <FiTrash2 size={11} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+      {/* Column headers — grid-cols-12: 3 name | 3 price | 3 cvar | 2 mix% | 1 delete */}
+      <div className="grid grid-cols-12 items-center gap-2 pb-2 mb-1 border-b border-black/[0.06]">
+        <div className="col-span-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+          Nombre
+        </div>
+        <div className="col-span-3 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+          Precio
+        </div>
+        <div className="col-span-3 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+          <Tooltip content={TIP.cvar}>
+            <span className="cursor-help underline decoration-dotted underline-offset-2">C.Var</span>
+          </Tooltip>
+        </div>
+        <div className="col-span-2 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+          <Tooltip content={TIP.mixPct}>
+            <span className="cursor-help underline decoration-dotted underline-offset-2">Mix%</span>
+          </Tooltip>
+        </div>
+        <div className="col-span-1" />
       </div>
+
+      {/* Rows — each cell occupies a hard col-span so large numbers never displace the delete button */}
+      <div className="space-y-1">
+        {products.map((p) => (
+          <div key={p.id} className="grid grid-cols-12 items-center gap-2 py-1 hover:bg-gray-50 rounded-lg transition-colors">
+            <div className="col-span-3 min-w-0 px-1 text-xs text-gray-700 font-medium truncate">
+              {p.name}
+            </div>
+            <SafeNumberInput
+              value={p.price}
+              onChange={(v) => onProductChange(p.id, 'price', v)}
+              className={`col-span-3 w-full px-2 py-1.5 text-xs text-right tabular-nums ${INPUT_CLS}`}
+            />
+            <SafeNumberInput
+              value={p.variableCost}
+              onChange={(v) => onProductChange(p.id, 'variableCost', v)}
+              className={`col-span-3 w-full px-2 py-1.5 text-xs text-right tabular-nums ${INPUT_CLS}`}
+            />
+            <SafeNumberInput
+              value={p.mixPercentage}
+              max={100}
+              onChange={(v) => onProductChange(p.id, 'mixPercentage', v)}
+              className={`col-span-2 w-full px-2 py-1.5 text-xs text-right tabular-nums ${INPUT_CLS}`}
+            />
+            {/* col-span-1 — always isolated, never displaced */}
+            <button
+              onClick={() => onDelete(p.id)}
+              className="col-span-1 flex items-center justify-center p-1.5 text-gray-300
+                         hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+            >
+              <FiTrash2 size={11} />
+            </button>
+          </div>
+        ))}
+      </div>
+
       <button onClick={onAdd}
         className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border
                    border-dashed border-gray-200 hover:border-emerald-400 hover:bg-emerald-50
@@ -773,22 +774,22 @@ export default function Home() {
                 <div className="space-y-3">
                   <div>
                     <label className={LABEL}>Impuestos sobre Ventas (IIBB %)</label>
-                    <NumericInput value={variableTax} onChange={setVariableTax} min={0} max={100}
+                    <SafeNumberInput value={variableTax} onChange={setVariableTax} min={0} max={100}
                       className={`w-full px-3 py-2.5 ${INPUT_CLS}`} />
                   </div>
                   <div>
                     <label className={LABEL}>Ventas Proyectadas ($)</label>
-                    <NumericInput value={projectedSales} onChange={setProjectedSales} min={0}
+                    <SafeNumberInput value={projectedSales} onChange={setProjectedSales} min={0}
                       className={`w-full px-3 py-2.5 ${INPUT_CLS}`} />
                   </div>
                   <div>
                     <label className={LABEL}>Rentabilidad Objetivo (% ventas)</label>
-                    <NumericInput value={targetMarginPct} onChange={setTargetMarginPct} min={0} max={99}
+                    <SafeNumberInput value={targetMarginPct} onChange={setTargetMarginPct} min={0} max={99}
                       className={`w-full px-3 py-2.5 ${INPUT_CLS}`} />
                   </div>
                   <div>
                     <label className={LABEL}>Inflación Proyectada (%)</label>
-                    <NumericInput value={inflationPct} onChange={setInflationPct} min={0} max={1000}
+                    <SafeNumberInput value={inflationPct} onChange={setInflationPct} min={0} max={1000}
                       className={`w-full px-3 py-2.5 ${INPUT_CLS}`} />
                   </div>
                 </div>
@@ -1071,7 +1072,7 @@ export default function Home() {
                           <span>IIBB %</span>
                         </Tooltip>
                       </label>
-                      <NumericInput value={variableTax} onChange={setVariableTax} min={0} max={100}
+                      <SafeNumberInput value={variableTax} onChange={setVariableTax} min={0} max={100}
                         className="w-14 text-right text-xs font-mono font-bold text-gray-800
                                    bg-transparent border-0 outline-none p-0" />
                     </div>
@@ -1083,7 +1084,7 @@ export default function Home() {
                   {/* Ventas Proyectadas — number only */}
                   <div>
                     <label className={`${SLABEL} block mb-1.5`}>Ventas Proyectadas ($)</label>
-                    <NumericInput value={projectedSales} onChange={setProjectedSales} min={0}
+                    <SafeNumberInput value={projectedSales} onChange={setProjectedSales} min={0}
                       className={`w-full px-3 py-1.5 text-sm ${INPUT_CLS}`} />
                   </div>
 
@@ -1095,7 +1096,7 @@ export default function Home() {
                           <span>ROS Obj. %</span>
                         </Tooltip>
                       </label>
-                      <NumericInput value={targetMarginPct} onChange={setTargetMarginPct} min={0} max={99}
+                      <SafeNumberInput value={targetMarginPct} onChange={setTargetMarginPct} min={0} max={99}
                         className="w-14 text-right text-xs font-mono font-bold text-gray-800
                                    bg-transparent border-0 outline-none p-0" />
                     </div>
@@ -1112,7 +1113,7 @@ export default function Home() {
                           <span>Inflación %</span>
                         </Tooltip>
                       </label>
-                      <NumericInput value={inflationPct} onChange={setInflationPct} min={0} max={1000}
+                      <SafeNumberInput value={inflationPct} onChange={setInflationPct} min={0} max={1000}
                         className="w-14 text-right text-xs font-mono font-bold text-orange-600
                                    bg-transparent border-0 outline-none p-0" />
                     </div>
