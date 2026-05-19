@@ -82,6 +82,10 @@ const normalize = (s: string) =>
 const preprocess = (raw: string): string => {
   let t = normalize(raw);
   for (const [rx, rep] of WORD_MAP) t = t.replace(rx, rep);
+  // FIX: Speech API returns large numbers with spaces between digit groups:
+  // "2 000 000" → "2000000",  "500 000" → "500000"
+  // Pattern: 1-3 digits followed by one or more groups of exactly 3 digits
+  t = t.replace(/\b\d{1,3}(?:\s+\d{3})+\b/g, m => m.replace(/\s+/g, ''));
   // "2 millones" → "2000000",  "1.5 millones" → "1500000"
   t = t.replace(/(\d+(?:[.,]\d+)?)\s*millones?\b/g, (_, n) =>
     String(Math.round(parseFloat(n.replace(',', '.')) * 1_000_000))
@@ -140,6 +144,21 @@ const dispatchCommand = (raw: string, handlers: VoiceHandlers): [CommandType, st
       handlers.onMix?.(nums);
       console.log(`[VoiceCommander] ✅ MIX → [${nums.join(', ')}]%`);
       return ['mix', `Mix → ${nums.join(' / ')}%`];
+    }
+    // FIX: API sometimes concatenates values without spaces: "304030" instead of "30 40 30"
+    // Split even-length 4-6 digit numbers into 2-digit chunks (typical mix percentages)
+    if (nums.length === 1) {
+      const s = String(Math.round(nums[0]));
+      if (s.length >= 4 && s.length % 2 === 0) {
+        const chunks = Array.from({ length: s.length / 2 }, (_, i) =>
+          parseInt(s.slice(i * 2, i * 2 + 2), 10)
+        );
+        if (chunks.every(v => v >= 0 && v <= 100)) {
+          handlers.onMix?.(chunks);
+          console.log(`[VoiceCommander] ✅ MIX (split) → [${chunks.join(', ')}]%`);
+          return ['mix', `Mix → ${chunks.join(' / ')}%`];
+        }
+      }
     }
   }
 
