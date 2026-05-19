@@ -16,6 +16,7 @@ import Tooltip from '../components/Tooltip';
 import SensitivityMatrix from '../components/SensitivityMatrix';
 import SafeNumberInput from '../components/SafeNumberInput';
 import StrategicImpactCard, { type BaselineSnapshot } from '../components/StrategicImpactCard';
+import VoiceCommander from '../components/VoiceCommander';
 
 const BreakevenChart = dynamic(() => import('@/components/BreakEvenChart'), { ssr: false });
 
@@ -528,6 +529,20 @@ export default function Home() {
     [products, fixedCosts, variableTax, projectedSales]
   );
 
+  // ── Voice command handlers ─────────────────────────────────────────────────
+  // Connect each intent to its state setter — state setters are stable refs,
+  // so this object is recreated only when setters change (never in practice).
+  const voiceHandlers = useMemo(() => ({
+    onInflation:  (pct: number)      => setInflationPct(pct),
+    onFixedCosts: (amount: number)   => setCostItems([{ id: 1, name: 'Costos Fijos (voz)', amount }]),
+    onMix:        (values: number[]) => setProducts(prev =>
+      prev.map((p, i) => i < values.length ? { ...p, mixPercentage: values[i] } : p)
+    ),
+    onTax:        (pct: number)      => setVariableTax(pct),
+    onSales:      (amount: number)   => setProjectedSales(amount),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), []);
+
   const mixTotal = products.reduce((sum, p) => sum + p.mixPercentage, 0);
   const health   = getFinancialHealth(breakevenResult);
   const hStyle   = HEALTH_STYLES[health.status];
@@ -679,6 +694,7 @@ export default function Home() {
                 className="w-24 px-2 py-1 text-xs bg-slate-800 border border-slate-700 rounded-lg
                            text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
               />
+              <VoiceCommander handlers={voiceHandlers} />
               <button
                 onClick={() => setBaseline({ ...currentSnapshot })}
                 title={baseline ? 'Actualizar base' : 'Fijar escenario base para comparar'}
@@ -969,6 +985,7 @@ export default function Home() {
                            text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500
                            focus:ring-2 focus:ring-emerald-500/20 transition-all"
               />
+              <VoiceCommander handlers={voiceHandlers} />
               <button
                 onClick={() => setBaseline({ ...currentSnapshot })}
                 title={baseline ? 'Actualizar base de comparación' : 'Fijar escenario base para comparar'}
