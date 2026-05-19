@@ -17,9 +17,9 @@ const COST_VARS  = [-10, -5, 0, 5, 10];
 const varLabel = (v: number) => (v > 0 ? `+${v}%` : `${v}%`);
 
 const cellStyle = (ebitda: number) => {
-  if (!isFinite(ebitda) || isNaN(ebitda)) return 'bg-slate-50 text-slate-400';
-  if (ebitda > 0) return 'bg-emerald-50 text-emerald-800';
-  return 'bg-red-50 text-red-800';
+  if (!isFinite(ebitda) || isNaN(ebitda)) return 'bg-slate-800/40 text-slate-500';
+  if (ebitda > 0) return 'bg-emerald-900/30 text-emerald-400';
+  return 'bg-rose-900/30 text-rose-400';
 };
 
 const fmtCell = (v: number) => {
@@ -52,17 +52,17 @@ export default function SensitivityMatrix({ products, fixedCosts, variableTax, p
     <div>
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-widest">
+          <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-widest">
             Matriz de Sensibilidad
           </h3>
-          <p className="text-[10px] text-slate-400 mt-0.5">
+          <p className="text-[10px] text-slate-500 mt-0.5">
             EBITDA estimado · Precio ↕ vs. Costos Variables ↔
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           {[
             { color: 'bg-emerald-500', label: 'Ganancia' },
-            { color: 'bg-red-500',     label: 'Pérdida'  },
+            { color: 'bg-rose-500',    label: 'Pérdida'  },
           ].map(({ color, label }) => (
             <span key={label} className="flex items-center gap-1 text-[9px] text-slate-500 uppercase tracking-wider">
               <span className={`h-2 w-2 rounded-sm ${color}`} />
@@ -73,7 +73,7 @@ export default function SensitivityMatrix({ products, fixedCosts, variableTax, p
       </div>
 
       {!grid ? (
-        <p className="text-xs text-slate-400 py-4 text-center">
+        <p className="text-xs text-slate-500 py-4 text-center">
           Ingresá productos y ventas proyectadas para ver la matriz.
         </p>
       ) : (
@@ -85,12 +85,12 @@ export default function SensitivityMatrix({ products, fixedCosts, variableTax, p
                   <span className="text-[9px] text-slate-500 uppercase tracking-wider leading-tight block">
                     Precio ↓
                   </span>
-                  <span className="text-[9px] text-slate-400 uppercase tracking-wider block">
+                  <span className="text-[9px] text-slate-600 uppercase tracking-wider block">
                     C.Var →
                   </span>
                 </th>
                 {COST_VARS.map(cv => (
-                  <th key={cv} className="pb-2 px-3 text-[10px] font-bold text-slate-900 uppercase tracking-wider">
+                  <th key={cv} className="pb-2 px-3 text-[10px] font-bold text-slate-200 uppercase tracking-wider">
                     {varLabel(cv)}
                   </th>
                 ))}
@@ -99,14 +99,14 @@ export default function SensitivityMatrix({ products, fixedCosts, variableTax, p
             <tbody>
               {grid.map((row, ri) => (
                 <tr key={PRICE_VARS[ri]} className="h-11">
-                  <td className="pr-3 text-left text-[10px] font-bold text-slate-900 uppercase tracking-wider">
+                  <td className="pr-3 text-left text-[10px] font-bold text-slate-200 uppercase tracking-wider">
                     {varLabel(PRICE_VARS[ri])}
                   </td>
                   {row.map((ebitda, ci) => (
                     <td
                       key={COST_VARS[ci]}
                       className={`px-3 py-2.5 font-mono text-xs font-semibold rounded-sm
-                                  border border-slate-100 ${cellStyle(ebitda)}`}
+                                  border border-slate-800/50 ${cellStyle(ebitda)}`}
                     >
                       {fmtCell(ebitda)}
                     </td>

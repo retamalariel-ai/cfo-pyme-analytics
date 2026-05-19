@@ -21,14 +21,14 @@ const BreakevenChart = dynamic(() => import('@/components/BreakEvenChart'), { ss
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const CARD =
-  'bg-white rounded-2xl border border-black/[0.06] ' +
-  'shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]';
+  'bg-slate-900 rounded-2xl border border-slate-800 ' +
+  'shadow-[0_1px_4px_rgba(0,0,0,0.3),0_8px_24px_rgba(0,0,0,0.4)]';
 const INPUT_CLS =
-  'bg-white border border-black/10 rounded-xl text-gray-900 font-mono text-sm ' +
-  'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ' +
-  'transition-all duration-150 placeholder-gray-400 hover:border-black/20';
-const LABEL = 'block mb-1.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider';
-const SLABEL = 'text-[10px] font-semibold text-gray-500 uppercase tracking-wider';
+  'bg-slate-800 border border-slate-700 rounded-xl text-slate-100 font-mono text-sm ' +
+  'focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 ' +
+  'transition-all duration-150 placeholder-slate-500 hover:border-slate-600';
+const LABEL = 'block mb-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider';
+const SLABEL = 'text-[10px] font-semibold text-slate-400 uppercase tracking-wider';
 
 type EditableField = 'price' | 'variableCost' | 'mixPercentage';
 type MobileTab = 'sim' | 'matrix' | 'structure';
@@ -38,20 +38,17 @@ const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const safeN = (v: number) => (isFinite(v) && !isNaN(v) ? v : 0);
 const fmtM = (v: number | null): string => {
   if (v == null || !isFinite(v) || isNaN(v)) return '—';
-  const abs = Math.abs(v);
   const sign = v < 0 ? '-' : '';
-  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(2)}M`;
-  if (abs >= 10_000)    return `${sign}$${(abs / 1_000).toFixed(1)}k`;
-  return `${sign}$${Math.round(abs).toLocaleString('es-AR')}`;
+  return `${sign}$${Math.round(Math.abs(v)).toLocaleString('es-AR')}`;
 };
 const fmtP  = (v: number | null) =>
   v != null && isFinite(v) && !isNaN(v) ? `${v.toFixed(1)}%` : '—';
 
 const HEALTH_STYLES = {
-  healthy:      { badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
-  moderate:     { badge: 'bg-amber-50 text-amber-700 border-amber-200',       dot: 'bg-amber-500'   },
-  risk:         { badge: 'bg-red-50 text-red-700 border-red-200',             dot: 'bg-red-500'     },
-  insufficient: { badge: 'bg-gray-50 text-gray-600 border-gray-200',          dot: 'bg-gray-400'    },
+  healthy:      { badge: 'bg-emerald-900/30 text-emerald-400 border-emerald-800', dot: 'bg-emerald-400' },
+  moderate:     { badge: 'bg-amber-900/30 text-amber-400 border-amber-800',       dot: 'bg-amber-400'   },
+  risk:         { badge: 'bg-rose-900/30 text-rose-400 border-rose-800',          dot: 'bg-rose-400'    },
+  insufficient: { badge: 'bg-slate-800 text-slate-400 border-slate-700',          dot: 'bg-slate-500'   },
 };
 
 const INITIAL_COST_ITEMS: CostItem[] = [
@@ -88,26 +85,26 @@ function ProductsTable({ products, mixTotal, onProductChange, onDelete, onAdd }:
   return (
     <div>
       {products.length > 0 && mixTotal !== 100 && (
-        <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl bg-amber-50 border border-amber-100">
-          <FiAlertTriangle size={11} className="text-amber-500 shrink-0" />
-          <p className="text-[11px] text-amber-700 font-medium">Mix total: {mixTotal}% — debe sumar 100%</p>
+        <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl bg-amber-900/20 border border-amber-800">
+          <FiAlertTriangle size={11} className="text-amber-400 shrink-0" />
+          <p className="text-[11px] text-amber-400 font-medium">Mix total: {mixTotal}% — debe sumar 100%</p>
         </div>
       )}
 
       {/* Column headers — grid-cols-12: 3 name | 3 price | 3 cvar | 2 mix% | 1 delete */}
-      <div className="grid grid-cols-12 items-center gap-2 pb-2 mb-1 border-b border-black/[0.06]">
-        <div className="col-span-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+      <div className="grid grid-cols-12 items-center gap-2 pb-2 mb-1 border-b border-slate-800">
+        <div className="col-span-3 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
           Nombre
         </div>
-        <div className="col-span-3 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+        <div className="col-span-3 text-right text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
           Precio
         </div>
-        <div className="col-span-3 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+        <div className="col-span-3 text-right text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
           <Tooltip content={TIP.cvar}>
             <span className="cursor-help underline decoration-dotted underline-offset-2">C.Var</span>
           </Tooltip>
         </div>
-        <div className="col-span-2 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+        <div className="col-span-2 text-right text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
           <Tooltip content={TIP.mixPct}>
             <span className="cursor-help underline decoration-dotted underline-offset-2">Mix%</span>
           </Tooltip>
@@ -118,8 +115,8 @@ function ProductsTable({ products, mixTotal, onProductChange, onDelete, onAdd }:
       {/* Rows — each cell occupies a hard col-span so large numbers never displace the delete button */}
       <div className="space-y-1">
         {products.map((p) => (
-          <div key={p.id} className="grid grid-cols-12 items-center gap-2 py-1 hover:bg-gray-50 rounded-lg transition-colors">
-            <div className="col-span-3 min-w-0 px-1 text-xs text-gray-700 font-medium truncate">
+          <div key={p.id} className="grid grid-cols-12 items-center gap-2 py-1 hover:bg-slate-800/60 rounded-lg transition-colors">
+            <div className="col-span-3 min-w-0 px-1 text-xs text-slate-300 font-medium truncate">
               {p.name}
             </div>
             <SafeNumberInput
@@ -141,8 +138,8 @@ function ProductsTable({ products, mixTotal, onProductChange, onDelete, onAdd }:
             {/* col-span-1 — always isolated, never displaced */}
             <button
               onClick={() => onDelete(p.id)}
-              className="col-span-1 flex items-center justify-center p-1.5 text-gray-300
-                         hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+              className="col-span-1 flex items-center justify-center p-1.5 text-slate-600
+                         hover:text-rose-400 hover:bg-rose-900/20 rounded-lg transition-all"
             >
               <FiTrash2 size={11} />
             </button>
@@ -153,7 +150,7 @@ function ProductsTable({ products, mixTotal, onProductChange, onDelete, onAdd }:
       <button onClick={onAdd}
         className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border
                    border-dashed border-gray-200 hover:border-emerald-400 hover:bg-emerald-50
-                   px-4 py-2 text-[11px] font-medium text-gray-400 hover:text-emerald-600 transition-all">
+                   px-4 py-2 text-[11px] font-medium text-slate-500 hover:text-emerald-600 transition-all">
         <FiPlus size={11} /> Añadir Producto
       </button>
     </div>
@@ -182,7 +179,9 @@ export default function Home() {
   };
 
   // ── UI state ──────────────────────────────────────────────────────────────
-  const [mobileTab, setMobileTab] = useState<MobileTab>('sim');
+  const [mobileTab,       setMobileTab]       = useState<MobileTab>('sim');
+  const [scenarioName,    setScenarioName]    = useState('');
+  const [saveRefreshKey,  setSaveRefreshKey]  = useState(0);
 
   // ── MEP ───────────────────────────────────────────────────────────────────
   type MepRate = { compra: number; venta: number };
@@ -247,9 +246,15 @@ export default function Home() {
     setSaving(true);
     setSaveMessage(null);
     const { error } = await saveScenario({
-      clientId: userId, products, costItems, fixedCosts, variableTax, observations,
+      clientId: userId,
+      name: scenarioName.trim() || undefined,
+      products, costItems, fixedCosts, variableTax, observations,
     });
     setSaving(false);
+    if (!error) {
+      setScenarioName('');
+      setSaveRefreshKey(k => k + 1);
+    }
     setSaveMessage(error
       ? { text: `Error: ${error}`, ok: false }
       : { text: 'Escenario guardado.', ok: true }
@@ -521,11 +526,8 @@ export default function Home() {
   const toUSD = (v: number | null): string => {
     if (v == null || effectiveTc == null || !isFinite(v) || !isFinite(effectiveTc)) return '';
     const usd = Math.round(v / effectiveTc);
-    const abs = Math.abs(usd);
     const sign = usd < 0 ? '-' : '';
-    if (abs >= 1_000_000) return `${sign}u$s ${(abs / 1_000_000).toFixed(1)}M`;
-    if (abs >= 10_000)    return `${sign}u$s ${(abs / 1_000).toFixed(1)}k`;
-    return `${sign}u$s ${usd.toLocaleString('es-AR')}`;
+    return `${sign}u$s ${Math.abs(usd).toLocaleString('es-AR')}`;
   };
 
   const inflatedResult = inflationPct > 0
@@ -535,18 +537,18 @@ export default function Home() {
       )
     : null;
   const kpiColor = (v: number | null) =>
-    v == null || !isFinite(v) || isNaN(v) ? 'text-gray-400'
-    : v >= 0 ? 'text-emerald-600' : 'text-red-600';
+    v == null || !isFinite(v) || isNaN(v) ? 'text-slate-500'
+    : v >= 0 ? 'text-emerald-400' : 'text-rose-400';
 
   const cmTotal           = projectedSales * (breakevenResult.averageContributionMargin / 100);
   const operatingLeverage =
     kpi.ebitda != null && isFinite(kpi.ebitda) && kpi.ebitda > 0
       ? cmTotal / kpi.ebitda : null;
   const olColor =
-    operatingLeverage == null ? 'text-gray-400'
-    : operatingLeverage > 5  ? 'text-red-600'
-    : operatingLeverage > 3  ? 'text-amber-600'
-    : 'text-emerald-600';
+    operatingLeverage == null ? 'text-slate-500'
+    : operatingLeverage > 5  ? 'text-rose-400'
+    : operatingLeverage > 3  ? 'text-amber-400'
+    : 'text-emerald-400';
 
   // ── KPI cards data ────────────────────────────────────────────────────────
   const smValue = kpi.safetyMargin ?? 0;
@@ -554,7 +556,7 @@ export default function Home() {
     {
       label:    'EBITDA',
       icon:     <FiTrendingUp size={13} />,
-      iconBg:   (kpi.ebitda ?? 0) >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600',
+      iconBg:   (kpi.ebitda ?? 0) >= 0 ? 'bg-emerald-900/30 text-emerald-400' : 'bg-rose-900/30 text-rose-400',
       value:    fmtM(kpi.ebitda),
       usd:      toUSD(kpi.ebitda),
       color:    kpiColor(kpi.ebitda),
@@ -567,10 +569,10 @@ export default function Home() {
     {
       label:    'Margen Seg.',
       icon:     <FiShield size={13} />,
-      iconBg:   smValue < 10 ? 'bg-red-50 text-red-600' : smValue < 25 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600',
+      iconBg:   smValue < 10 ? 'bg-rose-900/30 text-rose-400' : smValue < 25 ? 'bg-amber-900/30 text-amber-400' : 'bg-emerald-900/30 text-emerald-400',
       value:    fmtP(kpi.safetyMargin),
       usd:      '',
-      color:    smValue < 10 ? 'text-red-600' : smValue < 25 ? 'text-amber-600' : 'text-emerald-600',
+      color:    smValue < 10 ? 'text-rose-400' : smValue < 25 ? 'text-amber-400' : 'text-emerald-400',
       tip:      TIP.safetyMargin,
       pct:      Math.max(0, Math.min(100, smValue)),
       barColor: smValue < 10 ? 'bg-red-500' : smValue < 25 ? 'bg-amber-500' : 'bg-emerald-500',
@@ -579,10 +581,10 @@ export default function Home() {
     {
       label:    'Día P.E.',
       icon:     <FiCalendar size={13} />,
-      iconBg:   'bg-blue-50 text-blue-600',
+      iconBg:   'bg-blue-900/30 text-blue-400',
       value:    kpi.breakEvenDay != null ? `${kpi.breakEvenDay}/30` : '—',
       usd:      '',
-      color:    'text-gray-800',
+      color:    'text-slate-200',
       tip:      TIP.breakEvenDay,
       pct:      kpi.breakEvenDay != null ? Math.max(0, 100 - (kpi.breakEvenDay / 30) * 100) : 0,
       barColor: (kpi.breakEvenDay ?? 30) <= 20 ? 'bg-emerald-500' : (kpi.breakEvenDay ?? 30) <= 25 ? 'bg-amber-500' : 'bg-red-500',
@@ -591,10 +593,10 @@ export default function Home() {
     {
       label:    'Vtas. Obj.',
       icon:     <FiFlag size={13} />,
-      iconBg:   kpi.salesForTargetProfit == null ? 'bg-gray-50 text-gray-400' : 'bg-amber-50 text-amber-600',
+      iconBg:   kpi.salesForTargetProfit == null ? 'bg-slate-800 text-slate-500' : 'bg-amber-900/30 text-amber-400',
       value:    fmtM(kpi.salesForTargetProfit),
       usd:      toUSD(kpi.salesForTargetProfit),
-      color:    kpi.salesForTargetProfit == null ? 'text-gray-400' : 'text-amber-600',
+      color:    kpi.salesForTargetProfit == null ? 'text-slate-500' : 'text-amber-400',
       tip:      TIP.targetSales,
       pct:      kpi.salesForTargetProfit != null && kpi.salesForTargetProfit > 0
                   ? Math.max(0, Math.min(100, (projectedSales / kpi.salesForTargetProfit) * 100)) : 0,
@@ -604,13 +606,13 @@ export default function Home() {
     {
       label:    'Apalan. Op.',
       icon:     <FiActivity size={13} />,
-      iconBg:   operatingLeverage == null ? 'bg-gray-50 text-gray-400' : operatingLeverage > 5 ? 'bg-red-50 text-red-600' : operatingLeverage > 3 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600',
+      iconBg:   operatingLeverage == null ? 'bg-slate-800 text-slate-500' : operatingLeverage > 5 ? 'bg-rose-900/30 text-rose-400' : operatingLeverage > 3 ? 'bg-amber-900/30 text-amber-400' : 'bg-emerald-900/30 text-emerald-400',
       value:    operatingLeverage != null ? `${operatingLeverage.toFixed(2)}x` : '—',
       usd:      '',
       color:    olColor,
       tip:      TIP.opLeverage,
       pct:      operatingLeverage != null ? Math.max(0, Math.min(100, (1 - (operatingLeverage - 1) / 9) * 100)) : 0,
-      barColor: operatingLeverage == null ? 'bg-gray-200' : operatingLeverage > 5 ? 'bg-red-500' : operatingLeverage > 3 ? 'bg-amber-500' : 'bg-emerald-500',
+      barColor: operatingLeverage == null ? 'bg-slate-700' : operatingLeverage > 5 ? 'bg-red-500' : operatingLeverage > 3 ? 'bg-amber-500' : 'bg-emerald-500',
       warn:     false,
     },
   ];
@@ -620,8 +622,8 @@ export default function Home() {
   const SaveToast = () => saveMessage ? (
     <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium
                     ${saveMessage.ok
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                      : 'bg-red-50 border-red-200 text-red-700'}`}>
+                      ? 'bg-emerald-900/30 border-emerald-800 text-emerald-300'
+                      : 'bg-rose-900/30 border-rose-800 text-rose-300'}`}>
       {saveMessage.text}
     </div>
   ) : null;
@@ -634,10 +636,10 @@ export default function Home() {
           MOBILE VIEW  —  block md:hidden
           Tabbed system: Simulador | Matriz | Estructura
       ════════════════════════════════════════════════════════════════════ */}
-      <div className="block md:hidden min-h-screen bg-[#F5F7FA] flex flex-col pb-16">
+      <div className="block md:hidden min-h-screen bg-slate-950 flex flex-col pb-16">
 
         {/* Mobile Header */}
-        <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-black/[0.06] px-4">
+        <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 px-4">
           <div className="h-14 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 shrink-0">
               <div className="h-7 w-7 rounded-lg bg-emerald-500 flex items-center justify-center shadow-sm shadow-emerald-500/30">
@@ -647,14 +649,22 @@ export default function Home() {
                 </svg>
               </div>
               <div>
-                <p className="text-[13px] font-semibold text-gray-900 leading-none">CFO Command</p>
-                <p className="text-[9px] text-gray-400 leading-none mt-0.5 tracking-wide">
+                <p className="text-[13px] font-semibold text-slate-100 leading-none">CFO Command</p>
+                <p className="text-[9px] text-slate-400 leading-none mt-0.5 tracking-wide">
                   <span className={`inline-block h-1.5 w-1.5 rounded-full mr-1 ${hStyle.dot}`} />
                   {health.label}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={scenarioName}
+                onChange={(e) => setScenarioName(e.target.value)}
+                placeholder="Nombre…"
+                className="w-24 px-2 py-1 text-xs bg-slate-800 border border-slate-700 rounded-lg
+                           text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+              />
               <button onClick={handleSaveScenario} disabled={saving || products.length === 0}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600
                            disabled:opacity-40 rounded-xl text-[12px] font-semibold text-white
@@ -662,7 +672,7 @@ export default function Home() {
                 {saving ? 'Guardando…' : 'Guardar'}
               </button>
               <button onClick={handleSignOut}
-                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-900/20 rounded-xl transition-all">
                 <FiLogOut size={14} />
               </button>
             </div>
@@ -683,16 +693,16 @@ export default function Home() {
                   <div className={`h-6 w-6 rounded-lg flex items-center justify-center ${iconBg}`}>
                     {icon}
                   </div>
-                  {warn && <FiAlertTriangle size={10} className="text-red-500" />}
+                  {warn && <FiAlertTriangle size={10} className="text-rose-400" />}
                 </div>
                 <div className="min-w-0">
                   <Tooltip content={tip}>
-                    <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">{label}</span>
+                    <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
                   </Tooltip>
                   <p className={`font-mono font-bold tabular-nums truncate mt-0.5 ${color} ${value.length > 8 ? 'text-xs' : 'text-sm'}`}>{value}</p>
-                  {usd && <p className="font-mono text-[9px] text-gray-400 truncate">{usd}</p>}
+                  {usd && <p className="font-mono text-[9px] text-slate-500 truncate">{usd}</p>}
                 </div>
-                <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
                   <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
                 </div>
               </div>
@@ -708,7 +718,7 @@ export default function Home() {
             <div className="space-y-4 pb-4">
 
               <div className={`${CARD} p-4`}>
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-3">Parámetros</p>
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Parámetros</p>
                 <div className="space-y-3">
                   <div>
                     <label className={LABEL}>Impuestos sobre Ventas (IIBB %)</label>
@@ -736,15 +746,15 @@ export default function Home() {
               {/* MEP */}
               <div className={`${CARD} p-4`}>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Tipo de Cambio MEP</p>
-                  <span className={`h-1.5 w-1.5 rounded-full ${mepData ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Tipo de Cambio MEP</p>
+                  <span className={`h-1.5 w-1.5 rounded-full ${mepData ? 'bg-emerald-500' : 'bg-slate-600'}`} />
                 </div>
-                <div className="flex items-center justify-between py-2 border-b border-black/[0.06] mb-3">
-                  <span className="text-[11px] text-gray-500">Cotización venta</span>
-                  <span className="font-mono text-sm font-bold text-gray-800">
+                <div className="flex items-center justify-between py-2 border-b border-slate-800 mb-3">
+                  <span className="text-[11px] text-slate-400">Cotización venta</span>
+                  <span className="font-mono text-sm font-bold text-slate-200">
                     {mepData
                       ? `$${mepData.venta.toLocaleString('es-AR', { maximumFractionDigits: 2 })}`
-                      : <span className="text-gray-400 font-normal">—</span>}
+                      : <span className="text-slate-500 font-normal">—</span>}
                   </span>
                 </div>
                 <label className={LABEL}>Override manual (0 = auto)</label>
@@ -752,8 +762,8 @@ export default function Home() {
                   onChange={(e) => setManualTc(Number(e.target.value))}
                   placeholder="0" className={`w-full px-3 py-2 ${INPUT_CLS}`} />
                 {effectiveTc && (
-                  <p className="text-[10px] text-gray-400 mt-2 font-mono">
-                    TC activo: <span className="text-gray-700 font-semibold">
+                  <p className="text-[10px] text-slate-500 mt-2 font-mono">
+                    TC activo: <span className="text-slate-300 font-semibold">
                       ${effectiveTc.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                     </span>
                     <span className="ml-1 text-[9px]">{manualTc > 0 ? '(manual)' : '(MEP)'}</span>
@@ -763,15 +773,15 @@ export default function Home() {
 
               {/* Resultados Base */}
               <div className={`${CARD} p-4`}>
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-3">Resultados Base</p>
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Resultados Base</p>
                 {[
-                  { label: 'Ventas P.E.',   value: `$${safeN(breakevenResult.breakEvenSales).toLocaleString('es-AR',{maximumFractionDigits:0})}`, color: 'text-emerald-600', tip: TIP.breakEvenSales },
-                  { label: 'Unidades P.E.', value: safeN(breakevenResult.breakEvenUnits).toLocaleString('es-AR',{maximumFractionDigits:1}),        color: 'text-gray-700',    tip: TIP.breakEvenUnits },
-                  { label: 'Margen C.',     value: `${safeN(breakevenResult.averageContributionMargin).toFixed(1)}%`,                               color: 'text-gray-600',    tip: TIP.margin         },
+                  { label: 'Ventas P.E.',   value: `$${safeN(breakevenResult.breakEvenSales).toLocaleString('es-AR',{maximumFractionDigits:0})}`, color: 'text-emerald-400', tip: TIP.breakEvenSales },
+                  { label: 'Unidades P.E.', value: safeN(breakevenResult.breakEvenUnits).toLocaleString('es-AR',{maximumFractionDigits:1}),        color: 'text-slate-300',    tip: TIP.breakEvenUnits },
+                  { label: 'Margen C.',     value: `${safeN(breakevenResult.averageContributionMargin).toFixed(1)}%`,                               color: 'text-slate-400',    tip: TIP.margin         },
                 ].map(({ label, value, color, tip }) => (
-                  <div key={label} className="flex items-center justify-between gap-2 py-2 border-b border-black/[0.04] last:border-0">
+                  <div key={label} className="flex items-center justify-between gap-2 py-2 border-b border-slate-800/50 last:border-0">
                     <Tooltip content={tip}>
-                      <span className="text-[11px] text-gray-500 cursor-help">{label}</span>
+                      <span className="text-[11px] text-slate-400 cursor-help">{label}</span>
                     </Tooltip>
                     <span className={`font-mono text-sm font-bold ${color}`}>{value}</span>
                   </div>
@@ -780,10 +790,10 @@ export default function Home() {
 
               {/* Chart */}
               <div className={`${CARD} p-4`}>
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1">
                   Gráfico de Equilibrio
                 </p>
-                <p className="text-[9px] text-gray-300 mb-3">Ventas vs. Costos por unidades</p>
+                <p className="text-[9px] text-slate-600 mb-3">Ventas vs. Costos por unidades</p>
                 <div className="h-[200px] w-full">
                   <BreakevenChart
                     data={breakevenResult.chartData}
@@ -817,13 +827,13 @@ export default function Home() {
 
               {/* Scenario loader */}
               <div className={`${CARD} p-4`}>
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-3">Cargar Escenario</p>
-                <ScenarioSelector clientId={userId} onLoad={loadScenario} />
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Cargar Escenario</p>
+                <ScenarioSelector clientId={userId} onLoad={loadScenario} refreshKey={saveRefreshKey} />
               </div>
 
               {/* Products */}
               <div className={`${CARD} p-4`}>
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-3">Tabla de Productos</p>
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Tabla de Productos</p>
                 <ProductsTable
                   products={products}
                   mixTotal={mixTotal}
@@ -840,18 +850,17 @@ export default function Home() {
 
               {/* Notes */}
               <div className={`${CARD} p-4`}>
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Notas Estratégicas</p>
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Notas Estratégicas</p>
                 <textarea value={observations} onChange={(e) => setObservations(e.target.value)}
                   rows={4} placeholder="Conclusiones del escenario…"
-                  className="w-full bg-transparent border-0 outline-none resize-none text-sm text-gray-600
-                             placeholder-gray-300 leading-relaxed focus:ring-0" />
+                  className="w-full bg-transparent border-0 outline-none resize-none text-sm text-slate-300
+                             placeholder-slate-600 leading-relaxed focus:ring-0" />
               </div>
 
               {/* PDF */}
               <button onClick={generatePDF} disabled={generatingPdf || products.length === 0}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-black/10
-                           hover:border-black/20 hover:bg-gray-50 disabled:opacity-40 rounded-2xl
-                           text-[12px] font-medium text-gray-600 transition-all shadow-sm">
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 border border-slate-700 hover:border-slate-600 hover:bg-slate-700 disabled:opacity-40 rounded-2xl
+                           text-[12px] font-medium text-slate-400 transition-all shadow-sm">
                 <FiFileText size={13} />
                 {generatingPdf ? 'Generando PDF…' : 'Exportar PDF'}
               </button>
@@ -861,7 +870,7 @@ export default function Home() {
         </div>
 
         {/* Bottom Tab Bar */}
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-black/[0.06]">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/90 backdrop-blur-sm border-t border-slate-800">
           <div className="flex">
             {([
               { key: 'sim'       as MobileTab, label: 'Simulador',  Icon: FiActivity },
@@ -871,8 +880,8 @@ export default function Home() {
               <button key={key} onClick={() => setMobileTab(key)}
                 className={`flex-1 flex flex-col items-center justify-center py-3 gap-1 transition-colors duration-150
                             ${mobileTab === key
-                              ? 'text-emerald-600'
-                              : 'text-gray-400 hover:text-gray-600'}`}>
+                              ? 'text-emerald-400'
+                              : 'text-slate-500 hover:text-slate-300'}`}>
                 <Icon size={19} />
                 <span className="text-[10px] font-semibold">{label}</span>
               </button>
@@ -885,10 +894,10 @@ export default function Home() {
           DESKTOP VIEW  —  hidden md:flex
           Control Tower: header + KPI strip + 12-col grid, no page scroll
       ════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden md:flex flex-col h-screen bg-[#F5F7FA] overflow-hidden">
+      <div className="hidden md:flex flex-col h-screen bg-slate-950 overflow-hidden">
 
         {/* Desktop Header */}
-        <header className="shrink-0 bg-white/80 backdrop-blur-xl border-b border-black/[0.06] px-6">
+        <header className="shrink-0 bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 px-6">
           <div className="h-14 flex items-center justify-between gap-4">
 
             <div className="flex items-center gap-3 shrink-0">
@@ -899,8 +908,8 @@ export default function Home() {
                 </svg>
               </div>
               <div>
-                <p className="text-[13px] font-semibold text-gray-900 leading-none">CFO Command Center</p>
-                <p className="text-[10px] text-gray-400 leading-none mt-0.5 tracking-wide">Punto de Equilibrio</p>
+                <p className="text-[13px] font-semibold text-slate-100 leading-none">CFO Command Center</p>
+                <p className="text-[10px] text-slate-400 leading-none mt-0.5 tracking-wide">Punto de Equilibrio</p>
               </div>
             </div>
 
@@ -911,12 +920,22 @@ export default function Home() {
 
             <div className="flex items-center gap-2">
               <div className="w-52">
-                <ScenarioSelector clientId={userId} onLoad={loadScenario} />
+                <ScenarioSelector clientId={userId} onLoad={loadScenario} refreshKey={saveRefreshKey} />
               </div>
+              {/* Scenario name input — clears after save */}
+              <input
+                type="text"
+                value={scenarioName}
+                onChange={(e) => setScenarioName(e.target.value)}
+                placeholder="Nombre del escenario…"
+                className="w-44 px-3 py-1.5 text-xs bg-slate-800 border border-slate-700 rounded-xl
+                           text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500
+                           focus:ring-2 focus:ring-emerald-500/20 transition-all"
+              />
               <button onClick={generatePDF} disabled={generatingPdf || products.length === 0}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-black/10
-                           hover:border-black/20 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed
-                           rounded-xl text-[12px] font-medium text-gray-600 transition-all shadow-sm">
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700
+                           hover:border-slate-600 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed
+                           rounded-xl text-[12px] font-medium text-slate-300 transition-all">
                 <FiFileText size={12} />
                 {generatingPdf ? 'Generando…' : 'PDF'}
               </button>
@@ -927,7 +946,7 @@ export default function Home() {
                 {saving ? 'Guardando…' : 'Guardar'}
               </button>
               <button onClick={handleSignOut}
-                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-900/20 rounded-xl transition-all"
                 title="Cerrar sesión">
                 <FiLogOut size={14} />
               </button>
@@ -953,8 +972,8 @@ export default function Home() {
                 </div>
                 <div className="min-w-0">
                   <Tooltip content={tip}>
-                    <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                      {warn && <FiAlertTriangle size={8} className="text-red-500" />}
+                    <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-widest flex items-center gap-1">
+                      {warn && <FiAlertTriangle size={8} className="text-rose-400" />}
                       {label}
                     </span>
                   </Tooltip>
@@ -962,10 +981,10 @@ export default function Home() {
                     {value}
                   </p>
                   {usd && (
-                    <p className="font-mono text-[9px] text-gray-400 tabular-nums mt-0.5 truncate">{usd}</p>
+                    <p className="font-mono text-[9px] text-slate-500 tabular-nums mt-0.5 truncate">{usd}</p>
                   )}
                 </div>
-                <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
                   <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
                 </div>
               </div>
@@ -985,15 +1004,15 @@ export default function Home() {
                 <div className="flex items-center justify-between mb-4">
                   <p className={SLABEL}>Panel de Control</p>
                   <div className="flex items-center gap-2">
-                    <span className={`h-1.5 w-1.5 rounded-full ${mepData ? 'bg-emerald-500' : 'bg-gray-300'}`} />
-                    <span className="text-[10px] text-gray-400">MEP</span>
-                    <span className="font-mono text-xs font-bold text-gray-700">
+                    <span className={`h-1.5 w-1.5 rounded-full ${mepData ? 'bg-emerald-500' : 'bg-slate-600'}`} />
+                    <span className="text-[10px] text-slate-500">MEP</span>
+                    <span className="font-mono text-xs font-bold text-slate-300">
                       {mepData
                         ? `$${mepData.venta.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`
                         : '—'}
                     </span>
                     {effectiveTc && (
-                      <span className="text-[9px] text-gray-400">
+                      <span className="text-[9px] text-slate-500">
                         {manualTc > 0 ? '(manual)' : '(auto)'}
                       </span>
                     )}
@@ -1011,8 +1030,7 @@ export default function Home() {
                         </Tooltip>
                       </label>
                       <SafeNumberInput value={variableTax} onChange={setVariableTax} min={0} max={100}
-                        className="w-14 text-right text-xs font-mono font-bold text-gray-800
-                                   bg-transparent border-0 outline-none p-0" />
+                        className="w-14 text-right text-xs font-mono font-bold text-slate-200 bg-transparent border-0 outline-none p-0" />
                     </div>
                     <input type="range" min={0} max={50} step={0.5} value={variableTax}
                       onChange={(e) => setVariableTax(Number(e.target.value))}
@@ -1035,8 +1053,7 @@ export default function Home() {
                         </Tooltip>
                       </label>
                       <SafeNumberInput value={targetMarginPct} onChange={setTargetMarginPct} min={0} max={99}
-                        className="w-14 text-right text-xs font-mono font-bold text-gray-800
-                                   bg-transparent border-0 outline-none p-0" />
+                        className="w-14 text-right text-xs font-mono font-bold text-slate-200 bg-transparent border-0 outline-none p-0" />
                     </div>
                     <input type="range" min={0} max={60} step={0.5} value={targetMarginPct}
                       onChange={(e) => setTargetMarginPct(Number(e.target.value))}
@@ -1063,25 +1080,25 @@ export default function Home() {
                 </div>
 
                 {/* Results strip */}
-                <div className="mt-4 pt-4 border-t border-black/[0.04] flex items-center gap-6 flex-wrap">
+                <div className="mt-4 pt-4 border-t border-slate-800/50 flex items-center gap-6 flex-wrap">
                   {[
-                    { label: 'Ventas P.E.',   value: `$${safeN(breakevenResult.breakEvenSales).toLocaleString('es-AR',{maximumFractionDigits:0})}`, color: 'text-emerald-600', tip: TIP.breakEvenSales },
-                    { label: 'Unidades P.E.', value: safeN(breakevenResult.breakEvenUnits).toLocaleString('es-AR',{maximumFractionDigits:1}),        color: 'text-gray-700',    tip: TIP.breakEvenUnits },
-                    { label: 'Margen C.',     value: `${safeN(breakevenResult.averageContributionMargin).toFixed(1)}%`,                               color: 'text-gray-600',    tip: TIP.margin         },
+                    { label: 'Ventas P.E.',   value: `$${safeN(breakevenResult.breakEvenSales).toLocaleString('es-AR',{maximumFractionDigits:0})}`, color: 'text-emerald-400', tip: TIP.breakEvenSales },
+                    { label: 'Unidades P.E.', value: safeN(breakevenResult.breakEvenUnits).toLocaleString('es-AR',{maximumFractionDigits:1}),        color: 'text-slate-300',    tip: TIP.breakEvenUnits },
+                    { label: 'Margen C.',     value: `${safeN(breakevenResult.averageContributionMargin).toFixed(1)}%`,                               color: 'text-slate-400',    tip: TIP.margin         },
                   ].map(({ label, value, color, tip }) => (
                     <div key={label} className="flex flex-col">
                       <Tooltip content={tip}>
-                        <span className="text-[9px] text-gray-400 uppercase tracking-wider cursor-help">{label}</span>
+                        <span className="text-[9px] text-slate-500 uppercase tracking-wider cursor-help">{label}</span>
                       </Tooltip>
                       <span className={`font-mono text-sm font-bold ${color}`}>{value}</span>
                     </div>
                   ))}
                   {effectiveTc && (
                     <div className="ml-auto flex flex-col">
-                      <span className="text-[9px] text-gray-400 uppercase tracking-wider">TC Activo</span>
-                      <span className="font-mono text-sm font-bold text-gray-700">
+                      <span className="text-[9px] text-slate-500 uppercase tracking-wider">TC Activo</span>
+                      <span className="font-mono text-sm font-bold text-slate-300">
                         ${effectiveTc.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
-                        <span className="ml-1 text-[9px] text-gray-400 font-normal">
+                        <span className="ml-1 text-[9px] text-slate-500 font-normal">
                           {manualTc > 0 ? '(manual)' : '(MEP)'}
                         </span>
                       </span>
@@ -1095,10 +1112,10 @@ export default function Home() {
 
                 <div ref={chartRef} className={`${CARD} p-4 flex flex-col min-h-0`}>
                   <div className="shrink-0 mb-2">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
                       Equilibrio Base
                     </p>
-                    <p className="text-[9px] text-gray-300">Ventas vs. Costos</p>
+                    <p className="text-[9px] text-slate-600">Ventas vs. Costos</p>
                   </div>
                   <div className="flex-1 min-h-0">
                     <BreakevenChart
@@ -1110,13 +1127,13 @@ export default function Home() {
 
                 <div className={`${CARD} p-4 flex flex-col min-h-0`}>
                   <div className="shrink-0 mb-2">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
                       Escenario Inflacionario
                       {inflationPct > 0 && (
                         <span className="ml-1.5 text-orange-500">+{inflationPct}%</span>
                       )}
                     </p>
-                    <p className="text-[9px] text-gray-300">
+                    <p className="text-[9px] text-slate-600">
                       {inflationPct > 0 ? 'Costos variables estresados' : 'Ingresá inflación > 0 para activar'}
                     </p>
                   </div>
@@ -1128,7 +1145,7 @@ export default function Home() {
                       />
                     ) : (
                       <div className="h-full flex items-center justify-center">
-                        <p className="text-xs text-gray-200 text-center leading-relaxed">
+                        <p className="text-xs text-slate-700 text-center leading-relaxed">
                           Ajustá el slider de<br />inflación para ver el<br />escenario estresado
                         </p>
                       </div>
@@ -1178,8 +1195,8 @@ export default function Home() {
                 <p className={`${SLABEL} mb-2`}>Notas Estratégicas</p>
                 <textarea value={observations} onChange={(e) => setObservations(e.target.value)}
                   rows={3} placeholder="Conclusiones del escenario, recomendaciones, riesgos…"
-                  className="w-full bg-transparent border-0 outline-none resize-none text-sm text-gray-600
-                             placeholder-gray-300 leading-relaxed focus:ring-0" />
+                  className="w-full bg-transparent border-0 outline-none resize-none text-sm text-slate-300
+                             placeholder-slate-600 leading-relaxed focus:ring-0" />
               </div>
 
             </div>

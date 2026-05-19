@@ -7,9 +7,10 @@ import { getScenarios, ScenarioRecord } from '../lib/database';
 interface Props {
   clientId: string;
   onLoad: (scenario: ScenarioRecord) => void;
+  refreshKey?: number;
 }
 
-export default function ScenarioSelector({ clientId, onLoad }: Props) {
+export default function ScenarioSelector({ clientId, onLoad, refreshKey = 0 }: Props) {
   const [scenarios, setScenarios] = useState<ScenarioRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState('');
@@ -21,7 +22,8 @@ export default function ScenarioSelector({ clientId, onLoad }: Props) {
     setLoading(false);
   }, [clientId]);
 
-  useEffect(() => { fetchScenarios(); }, [fetchScenarios]);
+  // Re-fetch when parent increments refreshKey after a successful save
+  useEffect(() => { fetchScenarios(); }, [fetchScenarios, refreshKey]);
 
   const handleChange = (id: string) => {
     setSelectedId(id);
@@ -35,10 +37,10 @@ export default function ScenarioSelector({ clientId, onLoad }: Props) {
         value={selectedId}
         onChange={(e) => handleChange(e.target.value)}
         disabled={loading}
-        className="flex-1 bg-white border border-black/10 rounded-xl px-3 py-2 text-sm
-                   text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20
-                   focus:border-blue-500 transition-all disabled:opacity-50 disabled:bg-gray-50
-                   hover:border-black/20"
+        className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm
+                   text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20
+                   focus:border-emerald-500 transition-all disabled:opacity-50
+                   hover:border-slate-600"
       >
         <option value="">
           {loading ? 'Cargando…' : scenarios.length === 0 ? 'Sin escenarios guardados' : 'Cargar escenario…'}
@@ -55,8 +57,8 @@ export default function ScenarioSelector({ clientId, onLoad }: Props) {
         onClick={fetchScenarios}
         disabled={loading}
         aria-label="Actualizar lista"
-        className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100
-                   rounded-xl border border-black/10 transition-all disabled:opacity-50"
+        className="p-2 text-slate-500 hover:text-slate-200 hover:bg-slate-700
+                   rounded-xl border border-slate-700 transition-all disabled:opacity-50"
       >
         <FiRefreshCw size={14} className={loading ? 'animate-spin' : ''} />
       </button>
