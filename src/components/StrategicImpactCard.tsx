@@ -1,145 +1,166 @@
 'use client';
 
-interface Props {
-  tc?: number;
+import { useMemo } from 'react';
+import { calculateBreakeven } from '../lib/calculations';
+import type { Product } from '../lib/types';
+
+export interface BaselineSnapshot {
+  products:      Product[];
+  fixedCosts:    number;
+  variableTax:   number;
+  projectedSales: number;
 }
 
-const fmtARS = (val: number) =>
-  `$${Math.round(Math.abs(val)).toLocaleString('es-AR')}`;
+interface Props {
+  baseline:        BaselineSnapshot | null;
+  current:         BaselineSnapshot;
+  tc:              number;
+  onClearBaseline: () => void;
+}
 
-const fmtUSD = (val: number, tc: number) =>
-  `u$s ${Math.round(Math.abs(val) / tc).toLocaleString('es-AR')}`;
+const fmtARS = (v: number) =>
+  `${v < 0 ? '-' : ''}$${Math.round(Math.abs(v)).toLocaleString('es-AR')}`;
 
-// Each row: simulated (despues) value + badge showing improvement vs. antes
-const ROWS = [
-  {
-    label:       'P. Equilibrio',
-    despues:     11_083_333,
-    antes:       14_318_182,
-    format:      'ars'   as const,
-    // PE went DOWN → good. Badge arrow points down.
-    badgeArrow:  '↓',
-    badgeDelta:  14_318_182 - 11_083_333,  // 3 234 849
-    badgeFormat: 'ars'  as const,
-  },
-  {
-    label:       'EBITDA',
-    despues:     -26_300,
-    antes:       -811_100,
-    format:      'ars'   as const,
-    // EBITDA went UP → good.
-    badgeArrow:  '↑',
-    badgeDelta:  -26_300 - (-811_100),     // 784 800
-    badgeFormat: 'ars'  as const,
-  },
-  {
-    label:       'ROS',
-    despues:     -0.24,
-    antes:       -5.24,
-    format:      'pct'   as const,
-    // ROS went UP → good.
-    badgeArrow:  '↑',
-    badgeDelta:  -0.24 - (-5.24),          // 5.0 pp
-    badgeFormat: 'pp'   as const,
-  },
-];
+const safeDisplay = (v: number | null, format: 'ars' | 'pct'): string => {
+  if (v == null || !isFinite(v) || isNaN(v)) return '—';
+  return format === 'pct'
+    ? `${v >= 0 ? (v > 0 ? '+' : '') : ''}${v.toFixed(2)}%`
+    : fmtARS(v);
+};
 
-export default function StrategicImpactCard({ tc = 1420 }: Props) {
+const computeMetrics = (snap: BaselineSnapshot) => {
+  if (snap.products.length === 0) return null;
+  const r   = calculateBreakeven(snap.products, snap.fixedCosts, snap.variableTax);
+  const cmr = r.averageContributionMargin / 100;
+  const ebitda = isFinite(cmr) && cmr > 0
+    ? snap.projectedSales * cmr - snap.fixedCosts
+    : null;
+  const ros = ebitda != null && snap.projectedSales > 0
+    ? (ebitda / snap.projectedSales) * 100
+    : null;
+  return { breakEvenSales: r.breakEvenSales, ebitda, ros };
+};
+
+export default function StrategicImpactCard({ baseline, current, tc, onClearBaseline }: Props) {
+  const cur = useMemo(() => computeMetrics(current),  [current]);
+  const bas = useMemo(() => (baseline ? computeMetrics(baseline) : null), [baseline]);
+
+  const rows = useMemo(() => {
+    if (!bas || !cur) return null;
+    return [
+      { label: 'P. Equilibrio', antes: bas.breakEvenSales, despues: cur.breakEvenSales, format: 'ars' as const, lowerIsBetter: true  },
+      { label: 'EBITDA',        antes: bas.ebitda,          despues: cur.ebitda,          format: 'ars' as const, lowerIsBetter: false },
+      { label: 'ROS',           antes: bas.ros,             despues: cur.ros,             format: 'pct' as const, lowerIsBetter: false },
+    ];
+  }, [bas, cur]);
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-2xl">
 
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
         <h4 className="text-sm font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-          <span>⚡</span> Plan de Rescate Financiero
+          <span>⚡</span> Comparativa de Escenarios
         </h4>
         <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-mono">
           MEP: ${tc.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
         </span>
       </div>
 
-      {/* Column labels */}
-      <div className="grid grid-cols-12 gap-2 px-1 mb-1">
-        <div className="col-span-3 text-[9px] font-semibold text-slate-500 uppercase tracking-wider" />
-        <div className="col-span-5 text-right text-[9px] font-semibold text-slate-500 uppercase tracking-wider">
-          Simulado
+      {!baseline || !bas ? (
+        <div className="py-6 text-center space-y-1.5">
+          <p className="text-xs text-slate-400 font-medium">Sin escenario base</p>
+          <p className="text-[10px] text-slate-600 leading-relaxed">
+            Configurá un escenario y presioná{' '}
+            <span className="text-slate-400 font-semibold">Fijar base</span>{' '}
+            en el encabezado para comparar.
+          </p>
         </div>
-        <div className="col-span-4 text-right text-[9px] font-semibold text-slate-500 uppercase tracking-wider">
-          Mejora
-        </div>
-      </div>
-
-      {/* Metric rows */}
-      <div className="space-y-1.5 font-mono text-xs">
-        {ROWS.map(({ label, despues, format, badgeArrow, badgeDelta, badgeFormat }) => {
-          const isNeg = despues < 0;
-          const valueColor = isNeg ? 'text-amber-400' : 'text-emerald-400';
-
-          const valueDisplay =
-            format === 'pct'
-              ? `${despues > 0 ? '+' : ''}${despues.toFixed(2)}%`
-              : `${despues < 0 ? '-' : ''}${fmtARS(despues)}`;
-
-          const usdDisplay =
-            format === 'ars'
-              ? `${despues < 0 ? '-' : ''}${fmtUSD(despues, tc)}`
-              : null;
-
-          const badgeDisplay =
-            badgeFormat === 'pp'
-              ? `${badgeArrow} ${badgeDelta.toFixed(1)} pp`
-              : `${badgeArrow} ${fmtARS(badgeDelta)}`;
-
-          return (
-            <div
-              key={label}
-              className="grid grid-cols-12 gap-2 items-center bg-slate-950/50 px-2 py-2 rounded-lg"
-            >
-              {/* Label */}
-              <div className="col-span-3 font-sans text-[11px] text-slate-400 font-medium leading-tight">
-                {label}
-              </div>
-
-              {/* Simulated value */}
-              <div className={`col-span-5 text-right tabular-nums ${valueColor}`}>
-                <span className="block font-bold">{valueDisplay}</span>
-                {usdDisplay && (
-                  <span className="text-[10px] opacity-60">{usdDisplay}</span>
-                )}
-              </div>
-
-              {/* Improvement badge */}
-              <div className="col-span-4 flex justify-end">
-                <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-900/30
-                                 border border-emerald-800/60 px-1.5 py-0.5 rounded-md tabular-nums">
-                  {badgeDisplay}
-                </span>
-              </div>
+      ) : (
+        <>
+          {/* Column labels */}
+          <div className="grid grid-cols-12 gap-1 px-2 mb-1">
+            <div className="col-span-3" />
+            <div className="col-span-3 text-right text-[9px] font-semibold text-slate-600 uppercase tracking-wider">
+              Base
             </div>
-          );
-        })}
-      </div>
+            <div className="col-span-3 text-right text-[9px] font-semibold text-slate-500 uppercase tracking-wider">
+              Actual
+            </div>
+            <div className="col-span-3 text-right text-[9px] font-semibold text-slate-500 uppercase tracking-wider">
+              Delta
+            </div>
+          </div>
 
-      {/* Consulting notes */}
-      <div className="mt-4 pt-3 border-t border-slate-800/60 text-[11px] text-slate-400 space-y-2 font-sans">
-        <p className="font-semibold text-slate-200">Indicaciones aplicadas:</p>
-        <div className="flex gap-2 items-start">
-          <span className="text-emerald-400 font-bold shrink-0">1.</span>
-          <p>
-            <strong className="text-slate-300">Guerra al Mix Perdedor:</strong>{' '}
-            Reducción del Producto A (70% → 40%), derivando volumen hacia Producto B y C
-            de mayor margen neto.
-          </p>
-        </div>
-        <div className="flex gap-2 items-start">
-          <span className="text-emerald-400 font-bold shrink-0">2.</span>
-          <p>
-            <strong className="text-slate-300">Pricing de Emergencia:</strong>{' '}
-            Traslado del 15% de aumento solo en líneas premium (Prod B), absorbiendo
-            inflación de costos y el 4% de IIBB.
-          </p>
-        </div>
-      </div>
+          {/* Metric rows */}
+          <div className="space-y-1.5 font-mono text-xs">
+            {rows?.map(({ label, antes, despues, format, lowerIsBetter }) => {
+              const antesV   = antes   as number | null;
+              const despuesV = despues as number | null;
+
+              const rawDelta  = antesV != null && despuesV != null ? despuesV - antesV : null;
+              const improved  = rawDelta == null ? null
+                : lowerIsBetter ? rawDelta < 0 : rawDelta > 0;
+              const neutral   = rawDelta != null && Math.abs(rawDelta) < 0.005;
+
+              const arrow =
+                rawDelta == null || neutral ? '→'
+                : rawDelta < 0 ? '↓' : '↑';
+
+              const badgeColor =
+                neutral || improved == null
+                  ? 'text-slate-400 bg-slate-800 border-slate-700'
+                  : improved
+                    ? 'text-emerald-400 bg-emerald-900/30 border-emerald-800/60'
+                    : 'text-rose-400 bg-rose-900/30 border-rose-800/60';
+
+              const fmtDelta = () => {
+                if (rawDelta == null) return '—';
+                const abs = Math.abs(rawDelta);
+                return format === 'pct'
+                  ? `${arrow} ${abs.toFixed(1)} pp`
+                  : `${arrow} ${fmtARS(abs)}`;
+              };
+
+              const despuesColor =
+                despuesV == null || !isFinite(despuesV) ? 'text-slate-500'
+                : despuesV < 0 ? 'text-amber-400' : 'text-emerald-400';
+
+              return (
+                <div key={label} className="grid grid-cols-12 gap-1 items-center bg-slate-950/50 px-2 py-2 rounded-lg">
+                  <div className="col-span-3 font-sans text-[11px] text-slate-400 font-medium leading-tight truncate">
+                    {label}
+                  </div>
+                  <div className="col-span-3 text-right tabular-nums text-slate-600 text-[10px]">
+                    {safeDisplay(antesV, format)}
+                  </div>
+                  <div className={`col-span-3 text-right tabular-nums font-bold text-[11px] ${despuesColor}`}>
+                    {safeDisplay(despuesV, format)}
+                  </div>
+                  <div className="col-span-3 flex justify-end">
+                    <span className={`text-[10px] font-semibold border px-1.5 py-0.5 rounded-md tabular-nums whitespace-nowrap ${badgeColor}`}>
+                      {fmtDelta()}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Footer */}
+          <div className="mt-3 pt-2.5 border-t border-slate-800/60 flex items-center justify-between">
+            <p className="text-[10px] text-slate-600">
+              Modificá parámetros para ver el impacto en tiempo real
+            </p>
+            <button
+              onClick={onClearBaseline}
+              className="text-[10px] text-slate-600 hover:text-rose-400 transition-colors"
+            >
+              Limpiar
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

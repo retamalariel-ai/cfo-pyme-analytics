@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { FiTrash2, FiPlus, FiFileText, FiLogOut, FiAlertTriangle,
          FiTrendingUp, FiShield, FiCalendar, FiFlag, FiActivity,
-         FiGrid, FiList } from 'react-icons/fi';
+         FiGrid, FiList, FiBookmark } from 'react-icons/fi';
 import { calculateBreakeven, getFinancialHealth, calculateStrategicKPIs } from '../lib/calculations';
 import { getInitialProducts, saveScenario, supabase } from '../lib/database';
 import type { ScenarioRecord } from '../lib/database';
@@ -15,7 +15,7 @@ import FixedCostsEditor from '../components/FixedCostsEditor';
 import Tooltip from '../components/Tooltip';
 import SensitivityMatrix from '../components/SensitivityMatrix';
 import SafeNumberInput from '../components/SafeNumberInput';
-import StrategicImpactCard from '../components/StrategicImpactCard';
+import StrategicImpactCard, { type BaselineSnapshot } from '../components/StrategicImpactCard';
 
 const BreakevenChart = dynamic(() => import('@/components/BreakEvenChart'), { ssr: false });
 
@@ -76,12 +76,13 @@ const TIP = {
 interface ProductsTableProps {
   products: Product[];
   mixTotal: number;
+  onNameChange: (id: number, name: string) => void;
   onProductChange: (id: number, field: EditableField, value: number) => void;
   onDelete: (id: number) => void;
   onAdd: () => void;
 }
 
-function ProductsTable({ products, mixTotal, onProductChange, onDelete, onAdd }: ProductsTableProps) {
+function ProductsTable({ products, mixTotal, onNameChange, onProductChange, onDelete, onAdd }: ProductsTableProps) {
   return (
     <div>
       {products.length > 0 && mixTotal !== 100 && (
@@ -116,9 +117,13 @@ function ProductsTable({ products, mixTotal, onProductChange, onDelete, onAdd }:
       <div className="space-y-1">
         {products.map((p) => (
           <div key={p.id} className="grid grid-cols-12 items-center gap-2 py-1 hover:bg-slate-800/60 rounded-lg transition-colors">
-            <div className="col-span-3 min-w-0 px-1 text-xs text-slate-300 font-medium truncate">
-              {p.name}
-            </div>
+            <input
+              type="text"
+              value={p.name}
+              placeholder="Nombre"
+              onChange={(e) => onNameChange(p.id, e.target.value)}
+              className={`col-span-3 w-full px-2 py-1.5 text-xs ${INPUT_CLS}`}
+            />
             <SafeNumberInput
               value={p.price}
               onChange={(v) => onProductChange(p.id, 'price', v)}
@@ -149,8 +154,8 @@ function ProductsTable({ products, mixTotal, onProductChange, onDelete, onAdd }:
 
       <button onClick={onAdd}
         className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border
-                   border-dashed border-gray-200 hover:border-emerald-400 hover:bg-emerald-50
-                   px-4 py-2 text-[11px] font-medium text-slate-500 hover:text-emerald-600 transition-all">
+                   border-dashed border-slate-700 hover:border-emerald-600 hover:bg-emerald-900/10
+                   px-4 py-2 text-[11px] font-medium text-slate-500 hover:text-emerald-400 transition-all">
         <FiPlus size={11} /> Añadir Producto
       </button>
     </div>
@@ -182,6 +187,7 @@ export default function Home() {
   const [mobileTab,       setMobileTab]       = useState<MobileTab>('sim');
   const [scenarioName,    setScenarioName]    = useState('');
   const [saveRefreshKey,  setSaveRefreshKey]  = useState(0);
+  const [baseline,        setBaseline]        = useState<BaselineSnapshot | null>(null);
 
   // ── MEP ───────────────────────────────────────────────────────────────────
   type MepRate = { compra: number; venta: number };
@@ -218,6 +224,9 @@ export default function Home() {
   }, [products, fixedCosts, variableTax]);
 
   // ── Product handlers ──────────────────────────────────────────────────────
+  const handleNameChange = (id: number, name: string) =>
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, name } : p));
+
   const handleProductChange = (id: number, field: EditableField, value: number) => {
     if (isNaN(value)) return;
     setProducts(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
@@ -514,6 +523,11 @@ export default function Home() {
   };
 
   // ── Derived values ────────────────────────────────────────────────────────
+  const currentSnapshot = useMemo<BaselineSnapshot>(
+    () => ({ products, fixedCosts, variableTax, projectedSales }),
+    [products, fixedCosts, variableTax, projectedSales]
+  );
+
   const mixTotal = products.reduce((sum, p) => sum + p.mixPercentage, 0);
   const health   = getFinancialHealth(breakevenResult);
   const hStyle   = HEALTH_STYLES[health.status];
@@ -665,6 +679,18 @@ export default function Home() {
                 className="w-24 px-2 py-1 text-xs bg-slate-800 border border-slate-700 rounded-lg
                            text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
               />
+              <button
+                onClick={() => setBaseline({ ...currentSnapshot })}
+                title={baseline ? 'Actualizar base' : 'Fijar escenario base para comparar'}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold
+                            border transition-all
+                            ${baseline
+                              ? 'bg-amber-900/30 border-amber-800 text-amber-400 hover:bg-amber-900/50'
+                              : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-200'}`}
+              >
+                <FiBookmark size={11} />
+                {baseline ? 'Refiar' : 'Base'}
+              </button>
               <button onClick={handleSaveScenario} disabled={saving || products.length === 0}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600
                            disabled:opacity-40 rounded-xl text-[12px] font-semibold text-white
@@ -802,7 +828,12 @@ export default function Home() {
                 </div>
               </div>
 
-              <StrategicImpactCard tc={effectiveTc ?? 1420} />
+              <StrategicImpactCard
+                baseline={baseline}
+                current={currentSnapshot}
+                tc={effectiveTc ?? 1420}
+                onClearBaseline={() => setBaseline(null)}
+              />
             </div>
           )}
 
@@ -817,7 +848,12 @@ export default function Home() {
                   projectedSales={projectedSales}
                 />
               </div>
-              <StrategicImpactCard tc={effectiveTc ?? 1420} />
+              <StrategicImpactCard
+                baseline={baseline}
+                current={currentSnapshot}
+                tc={effectiveTc ?? 1420}
+                onClearBaseline={() => setBaseline(null)}
+              />
             </div>
           )}
 
@@ -837,6 +873,7 @@ export default function Home() {
                 <ProductsTable
                   products={products}
                   mixTotal={mixTotal}
+                  onNameChange={handleNameChange}
                   onProductChange={handleProductChange}
                   onDelete={deleteProduct}
                   onAdd={addProduct}
@@ -932,6 +969,18 @@ export default function Home() {
                            text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500
                            focus:ring-2 focus:ring-emerald-500/20 transition-all"
               />
+              <button
+                onClick={() => setBaseline({ ...currentSnapshot })}
+                title={baseline ? 'Actualizar base de comparación' : 'Fijar escenario base para comparar'}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium
+                            border transition-all
+                            ${baseline
+                              ? 'bg-amber-900/30 border-amber-800 text-amber-400 hover:bg-amber-900/50'
+                              : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-600 hover:bg-slate-700'}`}
+              >
+                <FiBookmark size={12} />
+                {baseline ? 'Refiar base' : 'Fijar base'}
+              </button>
               <button onClick={generatePDF} disabled={generatingPdf || products.length === 0}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700
                            hover:border-slate-600 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed
@@ -1175,6 +1224,7 @@ export default function Home() {
                 <ProductsTable
                   products={products}
                   mixTotal={mixTotal}
+                  onNameChange={handleNameChange}
                   onProductChange={handleProductChange}
                   onDelete={deleteProduct}
                   onAdd={addProduct}
@@ -1188,7 +1238,12 @@ export default function Home() {
 
               {/* Strategic Impact Card */}
               <div className="shrink-0">
-                <StrategicImpactCard tc={effectiveTc ?? 1420} />
+                <StrategicImpactCard
+                baseline={baseline}
+                current={currentSnapshot}
+                tc={effectiveTc ?? 1420}
+                onClearBaseline={() => setBaseline(null)}
+              />
               </div>
 
               <div className={`${CARD} p-4 shrink-0`}>
