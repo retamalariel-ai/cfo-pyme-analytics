@@ -4,16 +4,22 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 // Public interface — wire these to your state setters in page.tsx
 // ─────────────────────────────────────────────────────────────────────────────
 export interface VoiceHandlers {
-  /** setInflationPct(n)                                    "inflación 12 por ciento" */
-  onInflation?:  (pct: number)      => void;
-  /** setCostItems([{ id:1, name:'...', amount: n }])       "costos fijos 2 millones" */
-  onFixedCosts?: (amount: number)   => void;
-  /** setProducts(prev => prev.map(...mixPercentage))       "mix 40 35 25"            */
-  onMix?:        (values: number[]) => void;
-  /** setVariableTax(n)                                     "IIBB 3 por ciento"       */
-  onTax?:        (pct: number)      => void;
-  /** setProjectedSales(n)                                  "ventas proyectadas 500000" */
-  onSales?:      (amount: number)   => void;
+  /** setInflationPct(n)                                        "inflación 12 por ciento"          */
+  onInflation?:     (pct: number)                  => void;
+  /** setCostItems([{ id:1, name:'...', amount: n }])            "costos fijos 2 millones"          */
+  onFixedCosts?:    (amount: number)               => void;
+  /** setProducts(prev => prev.map(...mixPercentage))            "mix 40 35 25"                     */
+  onMix?:           (values: number[])             => void;
+  /** setVariableTax(n)                                         "IIBB 3 por ciento"                */
+  onTax?:           (pct: number)                  => void;
+  /** setProjectedSales(n)                                      "ventas proyectadas 500000"        */
+  onSales?:         (amount: number)               => void;
+  /** setTargetMarginPct(n)                                     "ROS objetivo 15" / "rentabilidad objetivo 20" */
+  onTargetMargin?:  (pct: number)                  => void;
+  /** setProducts price by product letter                        "precio producto A 15000"          */
+  onProductPrice?:  (letter: string, price: number) => void;
+  /** setProducts variableCost by product letter                 "costo variable producto A 5000"   */
+  onProductCost?:   (letter: string, cost: number)  => void;
 }
 
 export interface VoiceState {
@@ -106,7 +112,7 @@ const extractNumbers = (preprocessed: string): number[] =>
 // ─────────────────────────────────────────────────────────────────────────────
 // Command parser & dispatcher
 // ─────────────────────────────────────────────────────────────────────────────
-type CommandType = 'inflation' | 'fixedCosts' | 'mix' | 'tax' | 'sales' | 'unknown';
+type CommandType = 'inflation' | 'fixedCosts' | 'mix' | 'tax' | 'sales' | 'targetMargin' | 'productPrice' | 'productCost' | 'unknown';
 
 const dispatchCommand = (raw: string, handlers: VoiceHandlers): [CommandType, string] => {
   const t    = preprocess(raw);
@@ -179,6 +185,41 @@ const dispatchCommand = (raw: string, handlers: VoiceHandlers): [CommandType, st
       handlers.onSales?.(nums[0]);
       console.log(`[VoiceCommander] ✅ VENTAS → $${Math.round(nums[0]).toLocaleString('es-AR')}`);
       return ['sales', `Ventas → $${Math.round(nums[0]).toLocaleString('es-AR')}`];
+    }
+  }
+
+  // ── Rentabilidad objetivo / ROS ────────────────────────────────────────────
+  // "ROS objetivo 15" | "rentabilidad objetivo 20 por ciento" | "objetivo de rentabilidad 10"
+  if (/ros|rentabilidad|margen\s*(?:de\s*)?objetivo|objetivo\s*(?:de\s*)?(?:rentabilidad|margen)/.test(t)) {
+    if (nums.length > 0) {
+      handlers.onTargetMargin?.(nums[0]);
+      console.log(`[VoiceCommander] ✅ ROS OBJETIVO → ${nums[0]}%`);
+      return ['targetMargin', `ROS objetivo → ${nums[0]}%`];
+    }
+  }
+
+  // ── Precio de producto ─────────────────────────────────────────────────────
+  // "precio producto A 15000" | "precio A 15000" | "fijar precio del producto B 8000"
+  if (/precio/.test(t)) {
+    // Extract the product letter: single letter that follows "producto" or stands alone before a number
+    const letterMatch = t.match(/producto\s+([a-z])\b/) ?? t.match(/precio\s+([a-z])\b/);
+    const letter = letterMatch?.[1]?.toUpperCase();
+    if (letter && nums.length > 0) {
+      handlers.onProductPrice?.(letter, nums[0]);
+      console.log(`[VoiceCommander] ✅ PRECIO ${letter} → $${Math.round(nums[0]).toLocaleString('es-AR')}`);
+      return ['productPrice', `Precio ${letter} → $${Math.round(nums[0]).toLocaleString('es-AR')}`];
+    }
+  }
+
+  // ── Costo variable de producto ─────────────────────────────────────────────
+  // "costo variable producto A 5000" | "variable A 3000" | "costo producto B 7000"
+  if (/costo\s*(?:variable)?|variable/.test(t)) {
+    const letterMatch = t.match(/producto\s+([a-z])\b/) ?? t.match(/variable\s+([a-z])\b/);
+    const letter = letterMatch?.[1]?.toUpperCase();
+    if (letter && nums.length > 0) {
+      handlers.onProductCost?.(letter, nums[0]);
+      console.log(`[VoiceCommander] ✅ C.VAR ${letter} → $${Math.round(nums[0]).toLocaleString('es-AR')}`);
+      return ['productCost', `C.Var ${letter} → $${Math.round(nums[0]).toLocaleString('es-AR')}`];
     }
   }
 

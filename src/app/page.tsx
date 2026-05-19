@@ -533,13 +533,21 @@ export default function Home() {
   // Connect each intent to its state setter — state setters are stable refs,
   // so this object is recreated only when setters change (never in practice).
   const voiceHandlers = useMemo(() => ({
-    onInflation:  (pct: number)      => setInflationPct(pct),
-    onFixedCosts: (amount: number)   => setCostItems([{ id: 1, name: 'Costos Fijos (voz)', amount }]),
-    onMix:        (values: number[]) => setProducts(prev =>
+    onInflation:    (pct: number)                   => setInflationPct(pct),
+    onFixedCosts:   (amount: number)                => setCostItems([{ id: 1, name: 'Costos Fijos (voz)', amount }]),
+    onMix:          (values: number[])              => setProducts(prev =>
       prev.map((p, i) => i < values.length ? { ...p, mixPercentage: values[i] } : p)
     ),
-    onTax:        (pct: number)      => setVariableTax(pct),
-    onSales:      (amount: number)   => setProjectedSales(amount),
+    onTax:          (pct: number)                   => setVariableTax(pct),
+    onSales:        (amount: number)                => setProjectedSales(amount),
+    onTargetMargin: (pct: number)                   => setTargetMarginPct(pct),
+    // Match by letter in product name: "Producto A" contains "A", "Producto B" contains "B"
+    onProductPrice: (letter: string, price: number) => setProducts(prev =>
+      prev.map(p => p.name.toUpperCase().includes(letter) ? { ...p, price } : p)
+    ),
+    onProductCost:  (letter: string, cost: number)  => setProducts(prev =>
+      prev.map(p => p.name.toUpperCase().includes(letter) ? { ...p, variableCost: cost } : p)
+    ),
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), []);
 
