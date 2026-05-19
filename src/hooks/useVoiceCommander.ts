@@ -109,6 +109,42 @@ const extractNumbers = (preprocessed: string): number[] =>
     .map(n => parseFloat(n.replace(',', '.')))
     .filter(isFinite);
 
+// ── Product identifier resolution ─────────────────────────────────────────────
+// Returns the product letter ("A") or ordinal index as string ("0", "1", "2")
+// so page.tsx can match either way without knowing which strategy was used.
+
+const ORDINALS: [RegExp, number][] = [
+  [/\b(?:primer[ao]?|primero)\b/, 0],
+  [/\bsegund[ao]\b/,              1],
+  [/\btercer[ao]?\b/,             2],
+  [/\bcuart[ao]\b/,               3],
+  [/\bquint[ao]\b/,               4],
+];
+
+/**
+ * Tries to find a product identifier in preprocessed text.
+ * Priority: explicit letter (A/B/C) → ordinal word (primero/segundo…)
+ * Returns the letter ("A") or "0"/"1"/"2" for ordinal-based match.
+ */
+const resolveProductId = (t: string): string | null => {
+  // Letter patterns — order matters: prefer "producto X" over bare "precio X"
+  // Also handles reversed order: "producto A precio 15000"
+  const letterMatch =
+    t.match(/producto\s+([a-z])\b/) ??   // "producto A ..."
+    t.match(/([a-z])\s+precio\b/)   ??   // "A precio 15000"
+    t.match(/([a-z])\s+costo\b/)    ??   // "A costo 5000"
+    t.match(/precio\s+([a-z])\b/)   ??   // "precio A 15000"
+    t.match(/variable\s+([a-z])\b/);     // "variable A 5000"
+
+  if (letterMatch) return letterMatch[1].toUpperCase();
+
+  // Ordinal fallback: "primer producto", "segundo", etc.
+  for (const [rx, idx] of ORDINALS) {
+    if (rx.test(t)) return String(idx);
+  }
+  return null;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Command parser & dispatcher
 // ─────────────────────────────────────────────────────────────────────────────
@@ -199,27 +235,28 @@ const dispatchCommand = (raw: string, handlers: VoiceHandlers): [CommandType, st
   }
 
   // ── Precio de producto ─────────────────────────────────────────────────────
-  // "precio producto A 15000" | "precio A 15000" | "fijar precio del producto B 8000"
+  // "precio producto A 15000"  | "Producto A precio 15000" | "A precio 15000"
+  // "actualizar precio A a 15000" | "primer producto precio 15000"
   if (/precio/.test(t)) {
-    // Extract the product letter: single letter that follows "producto" or stands alone before a number
-    const letterMatch = t.match(/producto\s+([a-z])\b/) ?? t.match(/precio\s+([a-z])\b/);
-    const letter = letterMatch?.[1]?.toUpperCase();
-    if (letter && nums.length > 0) {
-      handlers.onProductPrice?.(letter, nums[0]);
-      console.log(`[VoiceCommander] ✅ PRECIO ${letter} → $${Math.round(nums[0]).toLocaleString('es-AR')}`);
-      return ['productPrice', `Precio ${letter} → $${Math.round(nums[0]).toLocaleString('es-AR')}`];
+    const id = resolveProductId(t);
+    if (id !== null && nums.length > 0) {
+      handlers.onProductPrice?.(id, nums[0]);
+      const label = isNaN(Number(id)) ? `Precio ${id}` : `Precio prod.${Number(id) + 1}`;
+      console.log(`[VoiceCommander] ✅ ${label} → $${Math.round(nums[0]).toLocaleString('es-AR')}`);
+      return ['productPrice', `${label} → $${Math.round(nums[0]).toLocaleString('es-AR')}`];
     }
   }
 
   // ── Costo variable de producto ─────────────────────────────────────────────
-  // "costo variable producto A 5000" | "variable A 3000" | "costo producto B 7000"
-  if (/costo\s*(?:variable)?|variable/.test(t)) {
-    const letterMatch = t.match(/producto\s+([a-z])\b/) ?? t.match(/variable\s+([a-z])\b/);
-    const letter = letterMatch?.[1]?.toUpperCase();
-    if (letter && nums.length > 0) {
-      handlers.onProductCost?.(letter, nums[0]);
-      console.log(`[VoiceCommander] ✅ C.VAR ${letter} → $${Math.round(nums[0]).toLocaleString('es-AR')}`);
-      return ['productCost', `C.Var ${letter} → $${Math.round(nums[0]).toLocaleString('es-AR')}`];
+  // "costo variable producto A 5000" | "variable A 3000" | "A costo 7000"
+  // "segundo producto costo variable 4000" | "costo variable primer producto 2000"
+  if (/costo|variable/.test(t)) {
+    const id = resolveProductId(t);
+    if (id !== null && nums.length > 0) {
+      handlers.onProductCost?.(id, nums[0]);
+      const label = isNaN(Number(id)) ? `C.Var ${id}` : `C.Var prod.${Number(id) + 1}`;
+      console.log(`[VoiceCommander] ✅ ${label} → $${Math.round(nums[0]).toLocaleString('es-AR')}`);
+      return ['productCost', `${label} → $${Math.round(nums[0]).toLocaleString('es-AR')}`];
     }
   }
 

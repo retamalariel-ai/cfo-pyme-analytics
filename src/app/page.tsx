@@ -541,13 +541,19 @@ export default function Home() {
     onTax:          (pct: number)                   => setVariableTax(pct),
     onSales:        (amount: number)                => setProjectedSales(amount),
     onTargetMargin: (pct: number)                   => setTargetMarginPct(pct),
-    // Match by letter in product name: "Producto A" contains "A", "Producto B" contains "B"
-    onProductPrice: (letter: string, price: number) => setProducts(prev =>
-      prev.map(p => p.name.toUpperCase().includes(letter) ? { ...p, price } : p)
-    ),
-    onProductCost:  (letter: string, cost: number)  => setProducts(prev =>
-      prev.map(p => p.name.toUpperCase().includes(letter) ? { ...p, variableCost: cost } : p)
-    ),
+    // id is either a letter ("A") matched by name, or an ordinal index string ("0","1","2")
+    onProductPrice: (id: string, price: number) => setProducts(prev => {
+      const idx = Number(id);
+      return isNaN(idx)
+        ? prev.map(p => p.name.toUpperCase().includes(id) ? { ...p, price } : p)
+        : prev.map((p, i) => i === idx ? { ...p, price } : p);
+    }),
+    onProductCost: (id: string, cost: number) => setProducts(prev => {
+      const idx = Number(id);
+      return isNaN(idx)
+        ? prev.map(p => p.name.toUpperCase().includes(id) ? { ...p, variableCost: cost } : p)
+        : prev.map((p, i) => i === idx ? { ...p, variableCost: cost } : p);
+    }),
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), []);
 
